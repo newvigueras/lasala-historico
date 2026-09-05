@@ -136,6 +136,10 @@
   .tag.sanidad-ok{background:var(--verde-light);color:var(--verde);border-color:var(--verde-border)}
   .tag.sanidad-mal{background:var(--red-light);color:var(--red);border-color:var(--red-border)}
   .check-card .obs{font-size:11px;color:var(--muted);margin-top:5px;font-style:italic}
+  .check-card .cabecera{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
+  .check-card .fecha{font-size:11px;color:var(--muted);font-weight:700}
+  .check-card .desc{font-size:12px;color:var(--text);margin-bottom:6px;line-height:1.4}
+  .check-card .footer-mini{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding-top:6px;border-top:1px solid var(--border);margin-top:2px}
 </style>
 </head>
 <body>
@@ -186,12 +190,7 @@
         <button onclick="cargarTrabajos()"><svg class="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Filtrar</button>
       </div>
       <div class="info" id="tr-info"></div>
-      <div class="panel-card">
-        <table>
-          <thead><tr><th>Fecha</th><th>Sección</th><th>Descripción</th><th>Partida origen</th><th>Estado</th></tr></thead>
-          <tbody id="tr-tbody"></tbody>
-        </table>
-      </div>
+      <div class="checks-grid" id="tr-grid"></div>
     </section>
 
     <!-- CONTROL CHECKS -->
@@ -209,12 +208,7 @@
         <button onclick="cargarChecks()"><svg class="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Filtrar</button>
       </div>
       <div class="info" id="ck-info"></div>
-      <div class="panel-card">
-        <table>
-          <thead><tr><th>Fecha</th><th>Tipo</th><th>Invernadero</th><th>Partida</th><th>Cliente/Variedad</th><th>Observaciones</th></tr></thead>
-          <tbody id="ck-tbody"></tbody>
-        </table>
-      </div>
+      <div class="checks-grid" id="ck-grid"></div>
     </section>
 
     <!-- PARTIDAS -->
@@ -267,12 +261,7 @@
     <!-- SYNC LOG -->
     <section id="pg-sync" class="pg">
       <div class="info">Últimas 50 ejecuciones de la sincronización diaria.</div>
-      <div class="panel-card">
-        <table>
-          <thead><tr><th>Ejecutado</th><th>Dominio</th><th>Leídos</th><th>Insertados</th><th>Purgados</th><th>Estado</th></tr></thead>
-          <tbody id="sync-tbody"></tbody>
-        </table>
-      </div>
+      <div class="checks-grid" id="sync-grid"></div>
     </section>
 
     <!-- ASISTENTE IA -->
@@ -344,8 +333,8 @@ window.showPage = function (nombre) {
   document.querySelectorAll('.pg').forEach(el => el.classList.remove('visible'));
   document.getElementById('pg-' + nombre).classList.add('visible');
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.toggle('active', b.dataset.pg === nombre));
-  if (nombre === 'checks' && !document.getElementById('ck-tbody').children.length) cargarChecks();
-  if (nombre === 'sync' && !document.getElementById('sync-tbody').children.length) cargarSync();
+  if (nombre === 'checks' && !document.getElementById('ck-grid').children.length) cargarChecks();
+  if (nombre === 'sync' && !document.getElementById('sync-grid').children.length) cargarSync();
   if (nombre === 'partidas' && !partidasCache) cargarPartidas();
   if (nombre === 'riego' && !riegoCache) cargarGrid('riego');
   if (nombre === 'fito' && !fitoCache) cargarGrid('fito');
@@ -364,19 +353,22 @@ window.cargarTrabajos = async function () {
 
   const { data, error } = await q;
   const info = document.getElementById('tr-info');
-  const tbody = document.getElementById('tr-tbody');
-  tbody.innerHTML = '';
-  if (error) { info.textContent = 'Error: ' + error.message; return; }
+  const grid = document.getElementById('tr-grid');
+  if (error) { info.textContent = 'Error: ' + error.message; grid.innerHTML = ''; return; }
   info.textContent = `${data.length} resultado(s) (máx. 200)`;
-  for (const t of data) {
-    tbody.innerHTML += `<tr>
-      <td>${t.fecha ?? ''}</td>
-      <td>${t.seccion ?? ''}${t.subseccion ? ' / ' + t.subseccion : ''}</td>
-      <td>${t.descripcion ?? ''}</td>
-      <td>${t.origen_pdf_partida ?? ''}</td>
-      <td>${t.estado ?? ''}</td>
-    </tr>`;
-  }
+  const claseEstado = (e) => e === 'completada' || e === 'hecho' ? 'sanidad-ok' : (e === 'sin_pinzar' || e === 'pendiente' ? '' : '');
+  grid.innerHTML = data.map(t => `
+    <div class="check-card">
+      <div class="cabecera">
+        <span class="fecha">${t.fecha ?? ''}</span>
+        ${t.estado ? `<span class="tag ${claseEstado(t.estado)}">${t.estado}</span>` : ''}
+      </div>
+      <div class="desc">${t.descripcion ?? '—'}</div>
+      <div class="footer-mini">
+        <span>${t.seccion ?? ''}${t.subseccion ? ' / ' + t.subseccion : ''}</span>
+        <span>${t.origen_pdf_partida ?? ''}</span>
+      </div>
+    </div>`).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin resultados</div>`;
 };
 
 window.cargarChecks = async function () {
@@ -395,20 +387,22 @@ window.cargarChecks = async function () {
 
   const { data, error } = await q;
   const info = document.getElementById('ck-info');
-  const tbody = document.getElementById('ck-tbody');
-  tbody.innerHTML = '';
-  if (error) { info.textContent = 'Error: ' + error.message; return; }
+  const grid = document.getElementById('ck-grid');
+  if (error) { info.textContent = 'Error: ' + error.message; grid.innerHTML = ''; return; }
   info.textContent = `${data.length} resultado(s) (máx. 200)`;
-  for (const c of data) {
-    tbody.innerHTML += `<tr>
-      <td>${c.fecha ?? ''}</td>
-      <td>${c.tipo_check ?? ''}</td>
-      <td>${c.invernadero ?? ''}</td>
-      <td>${c.partida ?? ''}</td>
-      <td>${c.cliente_variedad ?? ''}</td>
-      <td>${c.observaciones ?? ''}</td>
-    </tr>`;
-  }
+  grid.innerHTML = data.map(c => `
+    <div class="check-card">
+      <div class="cabecera">
+        <span class="fecha">${c.fecha ?? ''}</span>
+        ${c.tipo_check ? `<span class="tag">${c.tipo_check}</span>` : ''}
+      </div>
+      <div class="desc">${c.cliente_variedad || c.partida || '—'}</div>
+      ${c.observaciones ? `<div class="obs">${c.observaciones}</div>` : ''}
+      <div class="footer-mini">
+        <span>INV ${c.invernadero ?? '—'}</span>
+        <span>${c.partida ?? ''}</span>
+      </div>
+    </div>`).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin resultados</div>`;
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -739,20 +733,23 @@ window.cargarSync = async function () {
     .order('ejecutado_en', { ascending: false })
     .limit(50);
 
-  const tbody = document.getElementById('sync-tbody');
-  tbody.innerHTML = '';
-  if (error) { tbody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`; return; }
-  for (const s of data) {
+  const grid = document.getElementById('sync-grid');
+  if (error) { grid.innerHTML = `<div style="color:var(--red)">Error: ${error.message}</div>`; return; }
+  grid.innerHTML = data.map(s => {
     const clase = s.estado === 'ok' ? 'badge-ok' : s.estado === 'parcial' ? 'badge-parcial' : 'badge-error';
-    tbody.innerHTML += `<tr>
-      <td>${new Date(s.ejecutado_en).toLocaleString('es-ES')}</td>
-      <td>${s.dominio ?? ''}</td>
-      <td>${s.registros_leidos ?? 0}</td>
-      <td>${s.registros_insertados ?? 0}</td>
-      <td>${s.registros_purgados ?? 0}</td>
-      <td><span class="badge ${clase}">${s.estado ?? ''}</span></td>
-    </tr>`;
-  }
+    return `<div class="check-card">
+      <div class="cabecera">
+        <span class="fecha">${new Date(s.ejecutado_en).toLocaleString('es-ES')}</span>
+        <span class="badge ${clase}">${s.estado ?? ''}</span>
+      </div>
+      <div class="desc" style="font-weight:700">${s.dominio ?? ''}</div>
+      <div class="footer-mini">
+        <span>Leídos: ${s.registros_leidos ?? 0}</span>
+        <span>Insertados: ${s.registros_insertados ?? 0}</span>
+        <span>Purgados: ${s.registros_purgados ?? 0}</span>
+      </div>
+    </div>`;
+  }).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin ejecuciones todavía</div>`;
 };
 
 window.preguntarAsistente = async function () {
