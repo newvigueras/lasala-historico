@@ -200,6 +200,7 @@
     <button class="tab-btn" data-pg="checks" onclick="showPage('checks')">Control de calidad</button>
     <button class="tab-btn" data-pg="snapshots" onclick="showPage('snapshots')">Riego / Fito / Partidas</button>
     <button class="tab-btn" data-pg="sync" onclick="showPage('sync')">Estado de sincronización</button>
+    <button class="tab-btn" data-pg="asistente" onclick="showPage('asistente')">Asistente IA</button>
   </nav>
 
   <main>
@@ -261,6 +262,20 @@
         <thead><tr><th>Ejecutado</th><th>Dominio</th><th>Leídos</th><th>Insertados</th><th>Purgados</th><th>Estado</th></tr></thead>
         <tbody id="sync-tbody"></tbody>
       </table>
+    </section>
+
+    <!-- ASISTENTE IA -->
+    <section id="pg-asistente" class="pg">
+      <div class="info">
+        Pregunta en lenguaje normal sobre riego, calidad, trabajos o partidas.
+        Responde con los datos reales de La Sala (recientes y del histórico) — puede tardar unos segundos.
+      </div>
+      <div id="asis-chat" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;"></div>
+      <div class="filtros" style="align-items:flex-start;">
+        <textarea id="asis-pregunta" rows="2" placeholder="Ej: ¿qué tratamientos fitosanitarios se han hecho en el INV17 esta semana?"
+          style="flex:1; min-width:280px; padding:9px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+        <button id="asis-btn" onclick="preguntarAsistente()">Preguntar</button>
+      </div>
     </section>
 
   </main>
@@ -427,6 +442,50 @@ window.cargarSync = async function () {
       <td>${s.registros_purgados ?? 0}</td>
       <td><span class="badge ${clase}">${s.estado ?? ''}</span></td>
     </tr>`;
+  }
+};
+
+window.preguntarAsistente = async function () {
+  const textarea = document.getElementById('asis-pregunta');
+  const pregunta = textarea.value.trim();
+  if (!pregunta) return;
+
+  const chat = document.getElementById('asis-chat');
+  const btn = document.getElementById('asis-btn');
+
+  chat.innerHTML += `<div style="align-self:flex-end; background:var(--primary); color:#fff; padding:8px 12px; border-radius:10px; max-width:80%;">${pregunta}</div>`;
+  textarea.value = '';
+  btn.disabled = true;
+  btn.textContent = 'Pensando...';
+
+  const pensando = document.createElement('div');
+  pensando.style.cssText = 'align-self:flex-start; color:var(--muted); font-size:13px;';
+  pensando.textContent = 'Consultando los datos...';
+  chat.appendChild(pensando);
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/asistente-ia`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ pregunta }),
+    });
+    const json = await res.json();
+    pensando.remove();
+    const texto = res.ok ? json.respuesta : ('Error: ' + (json.error ?? res.status));
+    chat.innerHTML += `<div style="align-self:flex-start; background:var(--panel); border:1px solid var(--border); padding:8px 12px; border-radius:10px; max-width:80%; white-space:pre-wrap;">${texto}</div>`;
+  } catch (e) {
+    pensando.remove();
+    chat.innerHTML += `<div style="align-self:flex-start; color:var(--error);">Error de red: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Preguntar';
+    chat.scrollTop = chat.scrollHeight;
   }
 };
 
