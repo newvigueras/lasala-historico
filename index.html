@@ -640,15 +640,48 @@ window.renderGrid = function (tipo) {
   const claseCelda = tipo === 'riego' ? 'celda-riego' : 'celda-fito';
 
   const hdr = `<tr><td class="${claseDia} ${claseHdr}"></td>${calles.map(c => `<td class="${claseHdr}">${c}</td>`).join('')}</tr>`;
+
+  function textoDe(diaData, calle) {
+    const val = diaData[calle];
+    return typeof val === 'string' ? val : (val?.texto ?? '');
+  }
+
+  // Igual que en La Sala: si varias calles seguidas tienen el mismo texto,
+  // se muestran como una sola celda combinada (entre corchetes) en vez de
+  // repetir la frase en cada columna.
+  function detectarCorchetes(diaData) {
+    const brackets = [];
+    let i = 0;
+    while (i < calles.length) {
+      const texto = textoDe(diaData, calles[i]);
+      if (texto) {
+        let fin = i + 1;
+        while (fin < calles.length && textoDe(diaData, calles[fin]) === texto) fin++;
+        brackets.push({ start: i, span: fin - i, texto });
+        i = fin;
+      } else {
+        i++;
+      }
+    }
+    return brackets;
+  }
+
   const filas = dias.map(dia => {
     const diaData = datosInv[dia] || {};
-    const celdas = calles.map(c => {
-      const val = diaData[c];
-      const texto = typeof val === 'string' ? val : (val?.texto ?? '');
-      return texto
-        ? `<td class="${claseCelda}" title="${texto.replace(/"/g, '&quot;')}">${texto.length > 8 ? texto.slice(0, 8) + '…' : texto}</td>`
-        : `<td class="celda-vacia">·</td>`;
-    }).join('');
+    const brackets = detectarCorchetes(diaData);
+    let celdas = '';
+    let i = 0;
+    while (i < calles.length) {
+      const br = brackets.find(b => b.start === i);
+      if (br) {
+        const escapado = br.texto.replace(/"/g, '&quot;');
+        celdas += `<td class="${claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px">${br.texto}</td>`;
+        i += br.span;
+      } else {
+        celdas += `<td class="celda-vacia">·</td>`;
+        i++;
+      }
+    }
     return `<tr><td class="${claseDia}">${dia}</td>${celdas}</tr>`;
   }).join('');
 
