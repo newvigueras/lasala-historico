@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Sala Histórico</title>
+<style>
+  :root {
+    --bg: #f4f6f5;
+    --panel: #ffffff;
+    --text: #222;
+    --muted: #666;
+    --border: #e0e0e0;
+    --primary: #1558a0;
+    --ok: #2e7d32;
+    --parcial: #b8860b;
+    --error: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  header button {
+    background: rgba(255,255,255,.15);
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+  #login-box {
+    background: var(--panel);
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    width: 320px;
+  }
+  #login-box h2 { margin-top: 0; font-size: 20px; }
+  #login-box input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  #login-box button {
+    width: 100%;
+    padding: 10px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #login-error {
+    color: var(--error);
+    font-size: 13px;
+    margin-bottom: 10px;
+    display: none;
+  }
+
+  #app { display: none; }
+
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 20px 0;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  nav.tabs button {
+    background: none;
+    border: none;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    border-bottom: 3px solid transparent;
+  }
+  nav.tabs button.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+  }
+
+  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .pg { display: none; }
+  .pg.visible { display: block; }
+
+  .filtros {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    background: var(--panel);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .filtros input, .filtros select {
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .filtros button {
+    padding: 7px 14px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { background: #fafafa; color: var(--muted); font-weight: 600; }
+  tr:hover td { background: #f9fbfd; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .badge-ok { background: var(--ok); }
+  .badge-parcial { background: var(--parcial); }
+  .badge-error { background: var(--error); }
+
+  .info { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+
+  select#snapshot-dominio { margin-bottom: 12px; }
+  pre.json-view {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 500px;
+    overflow: auto;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div id="login-box">
+    <h2>La Sala Histórico</h2>
+    <div id="login-error"></div>
+    <input id="login-email" type="email" placeholder="Email" autocomplete="username">
+    <input id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <h1>La Sala Histórico</h1>
+    <button onclick="doLogout()">Salir</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-pg="trabajos" onclick="showPage('trabajos')">Trabajos</button>
+    <button class="tab-btn" data-pg="checks" onclick="showPage('checks')">Control de calidad</button>
+    <button class="tab-btn" data-pg="snapshots" onclick="showPage('snapshots')">Riego / Fito / Partidas</button>
+    <button class="tab-btn" data-pg="sync" onclick="showPage('sync')">Estado de sincronización</button>
+  </nav>
+
+  <main>
+
+    <!-- TRABAJOS -->
+    <section id="pg-trabajos" class="pg visible">
+      <div class="filtros">
+        <input id="tr-desde" type="date">
+        <input id="tr-hasta" type="date">
+        <input id="tr-texto" type="text" placeholder="Buscar en descripción...">
+        <button onclick="cargarTrabajos()">Filtrar</button>
+      </div>
+      <div class="info" id="tr-info"></div>
+      <table>
+        <thead><tr><th>Fecha</th><th>Sección</th><th>Descripción</th><th>Partida origen</th><th>Estado</th></tr></thead>
+        <tbody id="tr-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- CONTROL CHECKS -->
+    <section id="pg-checks" class="pg">
+      <div class="filtros">
+        <input id="ck-desde" type="date">
+        <input id="ck-hasta" type="date">
+        <input id="ck-inv" type="text" placeholder="Invernadero (ej. 17)">
+        <input id="ck-partida" type="text" placeholder="Partida (ej. 26X01687)">
+        <select id="ck-tipo">
+          <option value="">Todos los tipos</option>
+          <option value="tunel">Túnel</option>
+          <option value="carga">Carga</option>
+        </select>
+        <button onclick="cargarChecks()">Filtrar</button>
+      </div>
+      <div class="info" id="ck-info"></div>
+      <table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Invernadero</th><th>Partida</th><th>Cliente/Variedad</th><th>Observaciones</th></tr></thead>
+        <tbody id="ck-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- SNAPSHOTS -->
+    <section id="pg-snapshots" class="pg">
+      <div class="filtros">
+        <select id="snapshot-dominio" onchange="cargarSnapshot()">
+          <option value="riego">Riego</option>
+          <option value="fito">Fitosanitarios</option>
+          <option value="checks">Checks (estado por partida)</option>
+          <option value="partidas">Partidas</option>
+        </select>
+      </div>
+      <div class="info" id="sn-info"></div>
+      <pre class="json-view" id="sn-json"></pre>
+    </section>
+
+    <!-- SYNC LOG -->
+    <section id="pg-sync" class="pg">
+      <div class="info">Últimas 50 ejecuciones de la sincronización diaria.</div>
+      <table>
+        <thead><tr><th>Ejecutado</th><th>Dominio</th><th>Leídos</th><th>Insertados</th><th>Purgados</th><th>Estado</th></tr></thead>
+        <tbody id="sync-tbody"></tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://otydqbqtjyvzbuwwelta.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_U2etfHjlcYgxSXw7XWKO6w_Hw3lEe2U';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.supabase = supabase;
+
+async function checkSesion() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    cargarTrabajos();
+  }
+}
+
+window.doLogin = async function () {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errBox = document.getElementById('login-error');
+  errBox.style.display = 'none';
+  if (!email || !pass) {
+    errBox.textContent = 'Rellena email y contraseña.';
+    errBox.style.display = 'block';
+    return;
+  }
+  const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    errBox.textContent = 'Acceso incorrecto: ' + error.message;
+    errBox.style.display = 'block';
+    return;
+  }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  cargarTrabajos();
+};
+
+window.doLogout = async function () {
+  await supabase.auth.signOut();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+};
+
+window.showPage = function (nombre) {
+  document.querySelectorAll('.pg').forEach(el => el.classList.remove('visible'));
+  document.getElementById('pg-' + nombre).classList.add('visible');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.pg === nombre));
+  if (nombre === 'checks' && !document.getElementById('ck-tbody').children.length) cargarChecks();
+  if (nombre === 'snapshots' && !document.getElementById('sn-json').textContent) cargarSnapshot();
+  if (nombre === 'sync' && !document.getElementById('sync-tbody').children.length) cargarSync();
+};
+
+window.cargarTrabajos = async function () {
+  const desde = document.getElementById('tr-desde').value;
+  const hasta = document.getElementById('tr-hasta').value;
+  const texto = document.getElementById('tr-texto').value.trim();
+
+  let q = supabase.from('trabajos').select('*').order('fecha', { ascending: false }).limit(200);
+  if (desde) q = q.gte('fecha', desde);
+  if (hasta) q = q.lte('fecha', hasta);
+  if (texto) q = q.ilike('descripcion', `%${texto}%`);
+
+  const { data, error } = await q;
+  const info = document.getElementById('tr-info');
+  const tbody = document.getElementById('tr-tbody');
+  tbody.innerHTML = '';
+  if (error) { info.textContent = 'Error: ' + error.message; return; }
+  info.textContent = `${data.length} resultado(s) (máx. 200)`;
+  for (const t of data) {
+    tbody.innerHTML += `<tr>
+      <td>${t.fecha ?? ''}</td>
+      <td>${t.seccion ?? ''}${t.subseccion ? ' / ' + t.subseccion : ''}</td>
+      <td>${t.descripcion ?? ''}</td>
+      <td>${t.origen_pdf_partida ?? ''}</td>
+      <td>${t.estado ?? ''}</td>
+    </tr>`;
+  }
+};
+
+window.cargarChecks = async function () {
+  const desde = document.getElementById('ck-desde').value;
+  const hasta = document.getElementById('ck-hasta').value;
+  const inv = document.getElementById('ck-inv').value.trim();
+  const partida = document.getElementById('ck-partida').value.trim();
+  const tipo = document.getElementById('ck-tipo').value;
+
+  let q = supabase.from('control_checks').select('*').order('fecha', { ascending: false }).limit(200);
+  if (desde) q = q.gte('fecha', desde);
+  if (hasta) q = q.lte('fecha', hasta);
+  if (inv) q = q.eq('invernadero', inv);
+  if (partida) q = q.ilike('partida', `%${partida}%`);
+  if (tipo) q = q.eq('tipo_check', tipo);
+
+  const { data, error } = await q;
+  const info = document.getElementById('ck-info');
+  const tbody = document.getElementById('ck-tbody');
+  tbody.innerHTML = '';
+  if (error) { info.textContent = 'Error: ' + error.message; return; }
+  info.textContent = `${data.length} resultado(s) (máx. 200)`;
+  for (const c of data) {
+    tbody.innerHTML += `<tr>
+      <td>${c.fecha ?? ''}</td>
+      <td>${c.tipo_check ?? ''}</td>
+      <td>${c.invernadero ?? ''}</td>
+      <td>${c.partida ?? ''}</td>
+      <td>${c.cliente_variedad ?? ''}</td>
+      <td>${c.observaciones ?? ''}</td>
+    </tr>`;
+  }
+};
+
+window.cargarSnapshot = async function () {
+  const dominio = document.getElementById('snapshot-dominio').value;
+  const info = document.getElementById('sn-info');
+  const json = document.getElementById('sn-json');
+  info.textContent = 'Cargando...';
+  json.textContent = '';
+
+  const { data, error } = await supabase
+    .from('snapshots_dominio')
+    .select('capturado_en, datos_raw')
+    .eq('dominio', dominio)
+    .order('capturado_en', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) { info.textContent = 'Error: ' + error.message; return; }
+
+  const texto = JSON.stringify(data.datos_raw, null, 2);
+  info.textContent = `Última copia: ${new Date(data.capturado_en).toLocaleString('es-ES')} — ${(texto.length / 1024).toFixed(0)} KB`;
+  if (texto.length > 500000) {
+    json.textContent = texto.slice(0, 500000) + '\n\n... (recortado, el dato completo pesa demasiado para mostrarlo entero aquí)';
+  } else {
+    json.textContent = texto;
+  }
+};
+
+window.cargarSync = async function () {
+  const { data, error } = await supabase
+    .from('sync_log')
+    .select('*')
+    .order('ejecutado_en', { ascending: false })
+    .limit(50);
+
+  const tbody = document.getElementById('sync-tbody');
+  tbody.innerHTML = '';
+  if (error) { tbody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`; return; }
+  for (const s of data) {
+    const clase = s.estado === 'ok' ? 'badge-ok' : s.estado === 'parcial' ? 'badge-parcial' : 'badge-error';
+    tbody.innerHTML += `<tr>
+      <td>${new Date(s.ejecutado_en).toLocaleString('es-ES')}</td>
+      <td>${s.dominio ?? ''}</td>
+      <td>${s.registros_leidos ?? 0}</td>
+      <td>${s.registros_insertados ?? 0}</td>
+      <td>${s.registros_purgados ?? 0}</td>
+      <td><span class="badge ${clase}">${s.estado ?? ''}</span></td>
+    </tr>`;
+  }
+};
+
+checkSesion();
+</script>
+
+</body>
+</html>
