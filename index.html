@@ -229,7 +229,7 @@
       <div class="info" id="riego-info"></div>
       <div class="seg-box riego" style="max-width:640px">
         <div class="titulo">Aviso</div>
-        El número de la izquierda es el código de "día" interno que usa La Sala en sus registros — <b>no es directamente una fecha de calendario ni el día del ciclo de cultivo</b>. Estamos confirmando con el equipo cómo se calcula exactamente.
+El número de la izquierda es el "día" interno que usa La Sala, organizado por <b>quincenas de 15 días</b> (se indica con la banda de color antes de cada bloque). No corresponde directamente a una fecha de calendario.
       </div>
       <div class="grid-wrap"><table id="riego-tabla"></table></div>
     </section>
@@ -242,7 +242,7 @@
       <div class="info" id="fito-info"></div>
       <div class="seg-box fito" style="max-width:640px">
         <div class="titulo">Aviso</div>
-        El número de la izquierda es el código de "día" interno que usa La Sala en sus registros — <b>no es directamente una fecha de calendario ni el día del ciclo de cultivo</b>. Estamos confirmando con el equipo cómo se calcula exactamente.
+El número de la izquierda es el "día" interno que usa La Sala, organizado por <b>quincenas de 15 días</b> (se indica con la banda de color antes de cada bloque). No corresponde directamente a una fecha de calendario.
       </div>
       <div class="grid-wrap"><table id="fito-tabla"></table></div>
     </section>
@@ -669,7 +669,23 @@ window.renderGrid = function (tipo) {
     return brackets;
   }
 
+  // La Sala organiza el riego y los tratamientos por quincenas de 15 días
+  // (quincena 1 = días 1-15, quincena 2 = días 16-30, etc.)
+  function quincenaDe(dia) {
+    const q = Math.floor((dia - 1) / 15) + 1;
+    return { q, desde: (q - 1) * 15 + 1, hasta: q * 15 };
+  }
+
+  const nCols = calles.length + 1;
+  let quincenaActual = null;
   const filas = dias.map(dia => {
+    const q = quincenaDe(dia);
+    let cabeceraQuincena = '';
+    if (quincenaActual !== q.q) {
+      quincenaActual = q.q;
+      cabeceraQuincena = `<tr><td colspan="${nCols}" style="background:${tipo === 'riego' ? 'var(--blue)' : 'var(--red)'};color:#fff;font-weight:800;font-size:11px;text-align:left;padding:5px 8px;height:auto">Quincena ${q.q} — días ${q.desde} a ${q.hasta}</td></tr>`;
+    }
+
     const diaData = datosInv[dia] || {};
     const brackets = detectarCorchetes(diaData);
     let celdas = '';
@@ -685,7 +701,7 @@ window.renderGrid = function (tipo) {
         i++;
       }
     }
-    return `<tr><td class="${claseDia}">${dia}</td>${celdas}</tr>`;
+    return `${cabeceraQuincena}<tr><td class="${claseDia}">${dia}</td>${celdas}</tr>`;
   }).join('');
 
   tabla.innerHTML = hdr + filas;
