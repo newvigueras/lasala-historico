@@ -230,6 +230,20 @@
       </div>
       <div class="info" id="pt-info"></div>
       <div class="partidas-grid" id="pt-grid"></div>
+
+      <div style="margin-top:1.75rem;padding-top:1.25rem;border-top:2px solid var(--border)">
+        <div style="font-size:14px;font-weight:800;margin-bottom:.6rem">Mapa por invernadero (túnel)</div>
+        <div class="filtros">
+          <select id="mapa-inv" onchange="renderMapaPartidas()"></select>
+          <div class="quincena-nav">
+            <button onclick="cambiarSemanaMapa(-1)">‹</button>
+            <span id="mapa-semana-label"></span>
+            <button onclick="cambiarSemanaMapa(1)">›</button>
+          </div>
+        </div>
+        <div class="info" id="mapa-info"></div>
+        <div id="mapa-contenido"></div>
+      </div>
     </section>
 
     <!-- RIEGO -->
@@ -372,6 +386,7 @@ window.showPage = function (nombre) {
   if (nombre === 'checks' && !document.getElementById('ck-grid').children.length) cargarChecks();
   if (nombre === 'sync' && !document.getElementById('sync-grid').children.length) cargarSync();
   if (nombre === 'partidas' && !partidasCache) cargarPartidas();
+  if (nombre === 'partidas' && !mapaChecksCache) cargarMapaPartidas();
   if (nombre === 'riego' && !gridCache.riego) cargarGrid('riego');
   if (nombre === 'fito' && !gridCache.fito) cargarGrid('fito');
   if (nombre === 'especificos' && !gridCache.especificos) cargarGrid('especificos');
@@ -675,6 +690,185 @@ window.abrirPartidaDetalle = function (num, inv) {
 
 window.cerrarModalPartida = function () {
   document.getElementById('pt-modal').classList.remove('visible');
+};
+
+// ════════════════════════════════════════════════════════════════
+// MAPA DE PARTIDAS POR INVERNADERO (igual que "Partidas y Específicos" en
+// La Sala) — a diferencia de las tarjetas de arriba (que usan la lista
+// pequeña lasala-partidas-v1), este mapa usa los checks de Control de
+// calidad tipo "túnel", que es la fuente real que usa La Sala para saber
+// qué partida ocupa qué calle de cada invernadero, paginado por semana.
+// ════════════════════════════════════════════════════════════════
+
+const PARTIDAS_ANCHOR_DATE = new Date(2026, 6, 27); // 27 julio 2026 = semana 1, igual que en La Sala
+let semanaMapaOffset = null;
+let mapaChecksCache = null;
+
+function partidasSemanaDias(offset) {
+  const inicio = new Date(PARTIDAS_ANCHOR_DATE); inicio.setHours(0, 0, 0, 0);
+  inicio.setDate(inicio.getDate() + offset * 7);
+  const fin = new Date(inicio); fin.setDate(fin.getDate() + 6);
+  return { inicio, fin };
+}
+function partidasSemanaLabel(offset) {
+  const { inicio, fin } = partidasSemanaDias(offset);
+  return `Semana ${offset + 1} · ${formatoFechaCorta(inicio)} – ${formatoFechaCorta(fin)}`;
+}
+function partidasSemanaOffsetActual() {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const diffDias = Math.round((hoy - PARTIDAS_ANCHOR_DATE) / 86400000);
+  return Math.max(0, Math.floor(diffDias / 7));
+}
+function partidasSemanaDeFecha(fecha) {
+  const f = new Date(fecha); f.setHours(0, 0, 0, 0);
+  const diffDias = Math.round((f - PARTIDAS_ANCHOR_DATE) / 86400000);
+  return Math.floor(diffDias / 7);
+}
+
+function tipoPlantaDe(variedad) {
+  if (!variedad) return null;
+  const m = /(\d)\s*HV\b/.exec(variedad.toUpperCase());
+  return m ? m[1] + 'HV' : null;
+}
+const FONDOS_TIPO_PLANTA = {
+  '2HV': { bg: '#dbeafe', border: '#93c5fd' },
+  '3HV': { bg: '#ede9fe', border: '#c4b5fd' },
+  '4HV': { bg: '#ffe4c4', border: '#f0b060' },
+};
+
+window.cambiarSemanaMapa = function (delta) {
+  semanaMapaOffset = Math.max(0, (semanaMapaOffset ?? 0) + delta);
+  document.getElementById('mapa-semana-label').textContent = partidasSemanaLabel(semanaMapaOffset);
+  renderMapaPartidas();
+};
+
+async function cargarMapaPartidas() {
+  const info = document.getElementById('mapa-info');
+  info.textContent = 'Cargando...';
+  const { data, error } = await supabase.from('control_checks').select('*').limit(3000);
+  if (error) { info.textContent = 'Error: ' + error.message; return; }
+  mapaChecksCache = data;
+
+  const invsConTunel = [...new Set(data.filter(c => c.tipo_check === 'tunel' && c.invernadero).map(c => c.invernadero))];
+  const select = document.getElementById('mapa-inv');
+  select.innerHTML = invsConTunel
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map(inv => `<option value="${inv}">${INV_LAYOUT[inv]?.label || 'INV ' + inv}</option>`).join('');
+
+  if (semanaMapaOffset === null) semanaMapaOffset = partidasSemanaOffsetActual();
+  document.getElementById('mapa-semana-label').textContent = partidasSemanaLabel(semanaMapaOffset);
+  renderMapaPartidas();
+}
+
+// Fecha real de "salida de túnel" (parte de Carga) de una partida — la más
+// antigua entre los checks de tipo "carga" con ese mismo número de partida.
+function fechaCargaRealDe(numPartida) {
+  const cargas = mapaChecksCache.filter(c => c.tipo_check === 'carga' && c.partida === numPartida && c.fecha);
+  if (!cargas.length) return null;
+  return cargas.map(c => c.fecha).sort()[0];
+}
+
+function partidaVisibleEnSemana(check, semanaOffset) {
+  const dia = check.datos_raw?.dia;
+  if (dia == null) return true;
+  const semanaEntrada = partidasSemanaDeFecha(diaAFecha(dia));
+  if (semanaOffset < semanaEntrada) return false;
+  const fechaCarga = fechaCargaRealDe(check.partida);
+  if (fechaCarga) return semanaOffset < partidasSemanaDeFecha(new Date(fechaCarga));
+  return true;
+}
+
+function calcularBloquesMapa(invId, semanaOffset) {
+  const entradas = mapaChecksCache.filter(c =>
+    c.tipo_check === 'tunel' && c.invernadero === invId &&
+    (c.datos_raw?.tramos?.length || c.datos_raw?.calleDesde != null) &&
+    partidaVisibleEnSemana(c, semanaOffset));
+
+  const alturaPorCalle = {};
+  const bloques = [];
+  entradas.forEach(entry => {
+    const raw = entry.datos_raw || {};
+    const tramos = (raw.tramos && raw.tramos.length) ? raw.tramos : [{ desde: raw.calleDesde, hasta: raw.calleHasta }];
+    tramos.forEach(t => {
+      if (t.desde == null) return;
+      const desde = Math.min(t.desde, t.hasta ?? t.desde);
+      const hasta = Math.max(t.desde, t.hasta ?? t.desde);
+      const calles = [];
+      for (let c = desde; c <= hasta; c++) calles.push(c);
+      const pos = Math.max(0, ...calles.map(c => alturaPorCalle[c] || 0));
+      calles.forEach(c => { alturaPorCalle[c] = pos + 1; });
+      bloques.push({ calles, pos, entry });
+    });
+  });
+  return bloques;
+}
+
+function renderBloqueMapa(bloque) {
+  const c = bloque.entry;
+  const tipoPlanta = tipoPlantaDe(c.cliente_variedad);
+  const fondo = FONDOS_TIPO_PLANTA[tipoPlanta] || { bg: '#e8f5ef', border: '#a5d6c2' };
+  const dia = c.datos_raw?.dia;
+  const st = dia != null ? (() => { const f = diaAFecha(dia); return `ST: ${f.getDate()}/${f.getMonth() + 1}`; })() : '';
+  return `<div style="background:${fondo.bg};border:1px solid ${fondo.border};border-radius:6px;padding:4px 6px;height:100%;font-size:10px;overflow:hidden">
+    <div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.partida}</div>
+    <div style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.cliente_variedad || ''}</div>
+    <div style="font-size:9px;color:var(--muted)">${st}</div>
+  </div>`;
+}
+
+const MAPA_CW = 92, MAPA_ROW_H = 46;
+
+function construirFilaMapa(calles, bloques, alinearArriba) {
+  if (!calles.length) return '';
+  const relevantes = bloques.filter(b => b.calles.some(c => calles.includes(c)));
+  const maxPos = Math.max(0, ...relevantes.map(b => b.pos + 1));
+  const hdr = `<div style="display:flex">${calles.map(c => `<div style="width:${MAPA_CW}px;flex-shrink:0;height:24px;border:1px solid var(--blue-border);background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--blue)">${c}</div>`).join('')}</div>`;
+  if (!maxPos) {
+    return hdr + `<div style="display:flex">${calles.map(() => `<div style="width:${MAPA_CW}px;height:${MAPA_ROW_H}px;flex-shrink:0;padding:2px"><div style="height:100%;border:1px dashed var(--border);border-radius:6px"></div></div>`).join('')}</div>`;
+  }
+  const vaDescendente = calles.length > 1 && calles[0] > calles[calles.length - 1];
+  const anclaDe = b => vaDescendente ? Math.max(...b.calles) : Math.min(...b.calles);
+  const filas = [];
+  for (let r = 0; r < maxPos; r++) {
+    const displayPos = alinearArriba ? r : (maxPos - 1 - r);
+    let ci = 0;
+    const celdas = [];
+    while (ci < calles.length) {
+      const calle = calles[ci];
+      const bloque = relevantes.find(b => b.pos === displayPos && anclaDe(b) === calle);
+      if (bloque) {
+        celdas.push(`<div style="width:${MAPA_CW * bloque.calles.length}px;flex-shrink:0;padding:2px">${renderBloqueMapa(bloque)}</div>`);
+        ci += bloque.calles.length;
+      } else {
+        const cubierta = relevantes.some(b => b.pos === displayPos && b.calles.includes(calle) && anclaDe(b) !== calle);
+        if (!cubierta) celdas.push(`<div style="width:${MAPA_CW}px;height:${MAPA_ROW_H}px;flex-shrink:0;padding:2px"><div style="height:100%;border:1px dashed var(--border);border-radius:6px"></div></div>`);
+        ci++;
+      }
+    }
+    filas.push(`<div style="display:flex">${celdas.join('')}</div>`);
+  }
+  return hdr + filas.join('');
+}
+
+window.renderMapaPartidas = function () {
+  if (!mapaChecksCache) return;
+  const invId = document.getElementById('mapa-inv').value;
+  const cont = document.getElementById('mapa-contenido');
+  const info = document.getElementById('mapa-info');
+  if (!invId) { cont.innerHTML = ''; info.textContent = 'No hay checks de túnel guardados en ningún invernadero.'; return; }
+
+  const layout = INV_LAYOUT[invId];
+  if (!layout) { cont.innerHTML = ''; info.textContent = 'Falta el layout real de este invernadero.'; return; }
+
+  const bloques = calcularBloquesMapa(invId, semanaMapaOffset);
+  info.textContent = `${layout.label} — ${bloques.length} partida(s)/tramo(s) esta semana`;
+
+  cont.innerHTML = `
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:#fff;padding:8px">
+      ${construirFilaMapa(layout.row1, bloques, true)}
+      <div style="text-align:center;font-size:10px;font-weight:800;color:#fff;background:#4a5568;padding:4px;border-radius:4px;margin:6px 0;letter-spacing:.05em">PASILLO</div>
+      ${construirFilaMapa(layout.row2, bloques, false)}
+    </div>`;
 };
 
 // ════════════════════════════════════════════════════════════════
