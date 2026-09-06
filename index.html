@@ -118,7 +118,12 @@
   .campo-row .v{font-weight:700;text-align:right}
 
   /* Rejillas riego / fito */
-  .grid-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+  .quincena-nav{display:flex;align-items:center;gap:8px;background:var(--verde);color:#fff;border-radius:var(--rs);padding:6px 10px}
+  .quincena-nav button{width:24px;height:24px;border-radius:5px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer;font-size:14px;line-height:1}
+  .quincena-nav button:disabled{opacity:.35;cursor:default}
+  .quincena-nav span{font-size:12px;font-weight:700;white-space:nowrap}
+  .fila-titulo{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:6px 8px 4px;margin-bottom:0}
+  .grid-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px}
   .grid-wrap table{border-collapse:collapse;font-size:11px;table-layout:fixed;border:none}
   .grid-wrap td{border:1px solid var(--border);text-align:center;padding:0;height:28px}
   .grid-wrap .dia-riego{width:58px;min-width:58px;background:var(--blue-light);color:var(--blue);font-weight:800;position:sticky;left:0;font-size:10px}
@@ -231,39 +236,42 @@
     <section id="pg-riego" class="pg">
       <div class="filtros">
         <select id="riego-inv" onchange="renderGrid('riego')"></select>
+        <div class="quincena-nav">
+          <button onclick="cambiarQuincena('riego',-1)">‹</button>
+          <span id="riego-quincena-label"></span>
+          <button onclick="cambiarQuincena('riego',1)">›</button>
+        </div>
       </div>
       <div class="info" id="riego-info"></div>
-      <div class="seg-box riego" style="max-width:640px">
-        <div class="titulo">Aviso</div>
-Cada fila es un día real de calendario, organizado en quincenas de 14 días (lunes a domingo), igual que en La Sala — se indica con la banda de color antes de cada bloque.
-      </div>
-      <div class="grid-wrap"><table id="riego-tabla"></table></div>
+      <div id="riego-secciones"></div>
     </section>
 
     <!-- FITOSANITARIOS -->
     <section id="pg-fito" class="pg">
       <div class="filtros">
         <select id="fito-inv" onchange="renderGrid('fito')"></select>
+        <div class="quincena-nav">
+          <button onclick="cambiarQuincena('fito',-1)">‹</button>
+          <span id="fito-quincena-label"></span>
+          <button onclick="cambiarQuincena('fito',1)">›</button>
+        </div>
       </div>
       <div class="info" id="fito-info"></div>
-      <div class="seg-box fito" style="max-width:640px">
-        <div class="titulo">Aviso</div>
-Cada fila es un día real de calendario, organizado en quincenas de 14 días (lunes a domingo), igual que en La Sala — se indica con la banda de color antes de cada bloque.
-      </div>
-      <div class="grid-wrap"><table id="fito-tabla"></table></div>
+      <div id="fito-secciones"></div>
     </section>
 
     <!-- ESPECIFICOS -->
     <section id="pg-especificos" class="pg">
       <div class="filtros">
         <select id="especificos-inv" onchange="renderGrid('especificos')"></select>
+        <div class="quincena-nav">
+          <button onclick="cambiarQuincena('especificos',-1)">‹</button>
+          <span id="especificos-quincena-label"></span>
+          <button onclick="cambiarQuincena('especificos',1)">›</button>
+        </div>
       </div>
       <div class="info" id="especificos-info"></div>
-      <div class="seg-box especificos" style="max-width:640px">
-        <div class="titulo">Aviso</div>
-Cada fila es un día real de calendario, organizado en quincenas de 14 días (lunes a domingo), igual que en La Sala — se indica con la banda de color antes de cada bloque.
-      </div>
-      <div class="grid-wrap"><table id="especificos-tabla"></table></div>
+      <div id="especificos-secciones"></div>
     </section>
 
     <!-- ESTADO DE CALIDAD (checks por partida) -->
@@ -673,6 +681,39 @@ window.cerrarModalPartida = function () {
 // RIEGO / FITOSANITARIOS (rejilla por invernadero, día y calle)
 // ════════════════════════════════════════════════════════════════
 
+// Quincena mostrada por pestaña (igual que riegoQuincenaOffset en La Sala):
+// empieza en la quincena que contiene la fecha real de hoy, y ‹ › la cambian.
+const quincenaOffset = { riego: null, fito: null, especificos: null };
+
+function quincenaOffsetActual() {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const diffDias = Math.round((hoy - RIEGO_ANCHOR_DATE) / 86400000);
+  return Math.max(0, Math.floor(diffDias / 14));
+}
+
+function quincenaDiasDe(offset) {
+  const inicio = 15 + offset * 14;
+  return Array.from({ length: 14 }, (_, i) => inicio + i);
+}
+
+function quincenaLabelDe(offset) {
+  const dias = quincenaDiasDe(offset);
+  return `Quincena ${offset + 1} · ${formatoFechaCorta(diaAFecha(dias[0]))} – ${formatoFechaCorta(diaAFecha(dias[dias.length - 1]))}`;
+}
+
+function actualizarBarraQuincena(tipo) {
+  const span = document.getElementById(tipo + '-quincena-label');
+  if (span) span.textContent = quincenaLabelDe(quincenaOffset[tipo]);
+  const nav = document.querySelector(`#pg-${tipo} .quincena-nav`);
+  if (nav) nav.querySelectorAll('button')[0].disabled = quincenaOffset[tipo] <= 0;
+}
+
+window.cambiarQuincena = function (tipo, delta) {
+  quincenaOffset[tipo] = Math.max(0, (quincenaOffset[tipo] ?? 0) + delta);
+  actualizarBarraQuincena(tipo);
+  renderGrid(tipo);
+};
+
 window.cargarGrid = async function (tipo) {
   const info = document.getElementById(tipo + '-info');
   info.textContent = 'Cargando...';
@@ -687,6 +728,8 @@ window.cargarGrid = async function (tipo) {
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
       .map(inv => `<option value="${inv}">${INV_LAYOUT[inv]?.label || 'INV ' + inv}</option>`).join('');
 
+    if (quincenaOffset[tipo] === null) quincenaOffset[tipo] = quincenaOffsetActual();
+    actualizarBarraQuincena(tipo);
     renderGrid(tipo);
   } catch (e) {
     info.textContent = 'Error: ' + e.message;
@@ -698,51 +741,23 @@ window.renderGrid = function (tipo) {
   if (!cache) return;
   const inv = document.getElementById(tipo + '-inv').value;
   const info = document.getElementById(tipo + '-info');
-  const tabla = document.getElementById(tipo + '-tabla');
-  if (!inv) { tabla.innerHTML = ''; info.textContent = 'No hay datos guardados en ningún invernadero.'; return; }
+  const cont = document.getElementById(tipo + '-secciones');
+  if (!inv) { cont.innerHTML = ''; info.textContent = 'No hay datos guardados en ningún invernadero.'; return; }
 
   const datosInv = cache.datos[inv] || {};
   const layout = INV_LAYOUT[inv];
-  let calles;
-  if (layout) {
-    calles = [...layout.row1, ...layout.row2];
-  } else {
-    const set = new Set();
-    Object.values(datosInv).forEach(diaData => Object.keys(diaData).forEach(c => set.add(Number(c))));
-    calles = Array.from(set).sort((a, b) => a - b);
-  }
-
-  const dias = Object.keys(datosInv).map(Number).sort((a, b) => a - b);
-  info.textContent = `${INV_LAYOUT[inv]?.label || 'INV ' + inv} — copia del ${new Date(cache.capturadoEn).toLocaleString('es-ES')} — ${dias.length} día(s) con datos`;
+  // Siempre los 14 días reales de la quincena seleccionada, tengan o no
+  // tengan dato — para reflejar el invernadero tal cual es, igual que en La Sala.
+  const dias = quincenaDiasDe(quincenaOffset[tipo]);
+  info.textContent = `${layout?.label || 'INV ' + inv} — copia del ${new Date(cache.capturadoEn).toLocaleString('es-ES')}`;
 
   const { dia: claseDia, hdr: claseHdr, celda: claseCelda } = GRID_ESTILOS[tipo];
-
-  const hdr = `<tr><td class="${claseDia} ${claseHdr}"></td>${calles.map(c => `<td class="${claseHdr}">${c}</td>`).join('')}<td class="${claseHdr}" style="font-size:9px">Día semana</td></tr>`;
+  const colorBanda = { riego: 'var(--blue)', fito: 'var(--red)', especificos: 'var(--verde)' }[tipo];
 
   function rawDe(diaData, calle) { return diaData[calle]; }
   function textoDe(diaData, calle) {
     const val = rawDe(diaData, calle);
     return typeof val === 'string' ? val : (val?.texto ?? '');
-  }
-
-  // Igual que en La Sala: si varias calles seguidas tienen el mismo texto,
-  // se muestran como una sola celda combinada (entre corchetes) en vez de
-  // repetir la frase en cada columna.
-  function detectarCorchetes(diaData) {
-    const brackets = [];
-    let i = 0;
-    while (i < calles.length) {
-      const texto = textoDe(diaData, calles[i]);
-      if (texto) {
-        let fin = i + 1;
-        while (fin < calles.length && textoDe(diaData, calles[fin]) === texto) fin++;
-        brackets.push({ start: i, span: fin - i, texto, raw: rawDe(diaData, calles[i]) });
-        i = fin;
-      } else {
-        i++;
-      }
-    }
-    return brackets;
   }
 
   // Color de fondo de la celda igual que en La Sala:
@@ -761,56 +776,77 @@ window.renderGrid = function (tipo) {
     return null; // riego: se decide en el propio bucle de filas (resaltado de fin de semana)
   }
 
-  // La Sala organiza el riego y los tratamientos por quincenas reales de
-  // calendario: bloques de 14 días de lunes a domingo (el día 1 = lunes 1 de
-  // junio de 2026, confirmado con Antonio contra la propia app).
-  function bloqueQuincenalDe(dia) {
-    const indice = Math.floor((dia - 1) / 14);
-    const diaDesde = indice * 14 + 1;
-    const diaHasta = diaDesde + 13;
-    return { indice, desde: diaAFecha(diaDesde), hasta: diaAFecha(diaHasta), posEnBloque: dia - diaDesde };
+  // Cada invernadero tiene dos filas físicas reales (arriba/abajo), con sus
+  // propias calles — se muestran como dos secciones separadas, igual que en
+  // La Sala, en vez de mezclar ambas filas en una sola tabla de columnas.
+  function construirSeccion(calles, etiqueta) {
+    // Igual que en La Sala: si varias calles seguidas tienen el mismo texto,
+    // se muestran como una sola celda combinada (entre corchetes) en vez de
+    // repetir la frase en cada columna.
+    function detectarCorchetes(diaData) {
+      const brackets = [];
+      let i = 0;
+      while (i < calles.length) {
+        const texto = textoDe(diaData, calles[i]);
+        if (texto) {
+          let fin = i + 1;
+          while (fin < calles.length && textoDe(diaData, calles[fin]) === texto) fin++;
+          brackets.push({ start: i, span: fin - i, texto, raw: rawDe(diaData, calles[i]) });
+          i = fin;
+        } else {
+          i++;
+        }
+      }
+      return brackets;
+    }
+
+    const hdr = `<tr><td class="${claseDia} ${claseHdr}"></td>${calles.map(c => `<td class="${claseHdr}">${c}</td>`).join('')}<td class="${claseHdr}" style="font-size:9px">Día semana</td></tr>`;
+
+    const filas = dias.map(dia => {
+      const posEnBloque = dia - dias[0];
+      // Resaltado de fin de semana, solo en Riego: sábado/domingo de la 1ª
+      // semana y lunes de la 2ª, igual que RIEGO_HIGHLIGHT_POS en La Sala.
+      const resaltado = tipo === 'riego' ? RIEGO_HIGHLIGHT_POS[posEnBloque] : null;
+      const semana = diaSemanaDe(dia);
+
+      const diaData = datosInv[dia] || {};
+      const brackets = detectarCorchetes(diaData);
+      let celdas = '';
+      let i = 0;
+      while (i < calles.length) {
+        const br = brackets.find(b => b.start === i);
+        if (br) {
+          const escapado = br.texto.replace(/"/g, '&quot;');
+          const bg = resaltado ? resaltado.bg : colorCelda(br);
+          const estiloBg = bg ? `background:${bg}` : '';
+          celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px;${estiloBg}">${br.texto}</td>`;
+          i += br.span;
+        } else {
+          const estiloBg = resaltado ? `style="background:${resaltado.bg}"` : '';
+          celdas += `<td class="celda-vacia" ${estiloBg}>·</td>`;
+          i++;
+        }
+      }
+      const estiloDia = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : '';
+      const estiloSemana = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : 'style="font-size:9px;color:var(--muted)"';
+      return `<tr><td class="${claseDia}" title="día interno ${dia}" ${estiloDia}>${formatoFechaCorta(diaAFecha(dia))}</td>${celdas}<td ${estiloSemana}>${semana}</td></tr>`;
+    }).join('');
+
+    return `
+      <div class="fila-titulo" style="border-bottom:2px solid ${colorBanda}">${etiqueta}</div>
+      <div class="grid-wrap"><table>${hdr}${filas}</table></div>`;
   }
 
-  const nCols = calles.length + 2;
-  let bloqueActual = null;
-  const filas = dias.map(dia => {
-    const b = bloqueQuincenalDe(dia);
-    let cabeceraQuincena = '';
-    if (bloqueActual !== b.indice) {
-      bloqueActual = b.indice;
-      const colorBanda = { riego: 'var(--blue)', fito: 'var(--red)', especificos: 'var(--verde)' }[tipo];
-      cabeceraQuincena = `<tr><td colspan="${nCols}" style="background:${colorBanda};color:#fff;font-weight:800;font-size:11px;text-align:left;padding:5px 8px;height:auto">Quincena — ${formatoFechaCorta(b.desde)} a ${formatoFechaCorta(b.hasta)}</td></tr>`;
-    }
-
-    // Resaltado de fin de semana, solo en Riego: sábado/domingo de la 1ª
-    // semana y lunes de la 2ª, igual que RIEGO_HIGHLIGHT_POS en La Sala.
-    const resaltado = tipo === 'riego' ? RIEGO_HIGHLIGHT_POS[b.posEnBloque] : null;
-    const semana = diaSemanaDe(dia);
-
-    const diaData = datosInv[dia] || {};
-    const brackets = detectarCorchetes(diaData);
-    let celdas = '';
-    let i = 0;
-    while (i < calles.length) {
-      const br = brackets.find(b => b.start === i);
-      if (br) {
-        const escapado = br.texto.replace(/"/g, '&quot;');
-        const bg = resaltado ? resaltado.bg : colorCelda(br);
-        const estiloBg = bg ? `background:${bg}` : '';
-        celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px;${estiloBg}">${br.texto}</td>`;
-        i += br.span;
-      } else {
-        const estiloBg = resaltado ? `style="background:${resaltado.bg}"` : '';
-        celdas += `<td class="celda-vacia" ${estiloBg}>·</td>`;
-        i++;
-      }
-    }
-    const estiloDia = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : '';
-    const estiloSemana = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : 'style="font-size:9px;color:var(--muted)"';
-    return `${cabeceraQuincena}<tr><td class="${claseDia}" title="día interno ${dia}" ${estiloDia}>${formatoFechaCorta(diaAFecha(dia))}</td>${celdas}<td ${estiloSemana}>${semana}</td></tr>`;
-  }).join('');
-
-  tabla.innerHTML = hdr + filas;
+  if (layout) {
+    cont.innerHTML =
+      construirSeccion(layout.row1, `Fila 1 — Calles ${layout.row1[0]} → ${layout.row1[layout.row1.length - 1]}`) +
+      construirSeccion(layout.row2, `Fila 2 — Calles ${layout.row2[0]} → ${layout.row2[layout.row2.length - 1]}`);
+  } else {
+    const set = new Set();
+    Object.values(datosInv).forEach(diaData => Object.keys(diaData).forEach(c => set.add(Number(c))));
+    const calles = Array.from(set).sort((a, b) => a - b);
+    cont.innerHTML = construirSeccion(calles, 'Calles (orden no confirmado — falta el layout real de este invernadero)');
+  }
 };
 
 // ════════════════════════════════════════════════════════════════
