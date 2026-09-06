@@ -91,9 +91,9 @@
   .partida-card .cliente{font-size:11px;color:var(--muted);margin-bottom:8px}
   .partida-card .badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
   .mini-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
-  .mini-badge.ok{background:var(--verde-light);color:var(--verde);border:1px solid var(--verde-border)}
-  .mini-badge.pend{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border)}
-  .mini-badge.no{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+  .mini-badge.ok{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+  .mini-badge.pend{background:#fff8e1;color:#f57f17;border:1px solid #ffe082}
+  .mini-badge.no{background:#fce4ec;color:#c62828;border:1px solid #f48fb1}
   .seg-box{border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:9px;line-height:1.6}
   .seg-box.riego{background:var(--blue-light);border:1px solid var(--blue-border)}
   .seg-box.fito{background:var(--red-light);border:1px solid var(--red-border)}
@@ -108,7 +108,7 @@
   /* Modal detalle partida */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:500;padding:1rem}
   .modal-overlay.visible{display:flex}
-  .modal-box{background:#fff;border-radius:14px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+  .modal-box{background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.3)}
   .modal-head{background:var(--verde);color:#fff;padding:1rem 1.25rem;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
   .modal-head button{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:5px 10px;cursor:pointer}
   .modal-body{padding:1.1rem 1.25rem}
@@ -119,6 +119,8 @@
 
   /* Rejillas riego / fito */
   .quincena-nav{display:flex;align-items:center;gap:8px;background:var(--verde);color:#fff;border-radius:var(--rs);padding:6px 10px}
+  .quincena-nav.mod-riego{background:linear-gradient(120deg,#124a86 0%,#1558a0 55%,#2a72c4 100%)}
+  .quincena-nav.mod-fito{background:#a32020}
   .quincena-nav button{width:24px;height:24px;border-radius:5px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer;font-size:14px;line-height:1}
   .quincena-nav button:disabled{opacity:.35;cursor:default}
   .quincena-nav span{font-size:12px;font-weight:700;white-space:nowrap}
@@ -126,11 +128,11 @@
   .grid-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px}
   .grid-wrap table{border-collapse:collapse;font-size:11px;table-layout:fixed;border:none}
   .grid-wrap td{border:1px solid var(--border);text-align:center;padding:0;height:28px}
-  .grid-wrap .dia-riego{width:58px;min-width:58px;background:var(--blue-light);color:var(--blue);font-weight:800;position:sticky;left:0;font-size:10px}
+  .grid-wrap .dia-riego{width:58px;min-width:58px;background:#dce8f5;color:#1558a0;font-weight:800;position:sticky;left:0;font-size:10px;border-color:#9ab8d8}
   .grid-wrap .dia-fito{width:58px;min-width:58px;background:var(--red-light);color:var(--red);font-weight:800;position:sticky;left:0;font-size:10px}
-  .grid-wrap .hdr-riego{background:var(--blue-light);color:var(--text);font-weight:800;position:sticky;top:0}
+  .grid-wrap .hdr-riego{background:#dce8f5;color:var(--text);font-weight:800;position:sticky;top:0;border-color:#9ab8d8}
   .grid-wrap .hdr-fito{background:var(--red-light);color:var(--text);font-weight:800;position:sticky;top:0}
-  .grid-wrap .celda-riego{background:#e8f5e0;color:#0a5a0a;font-weight:700;font-size:9px}
+  .grid-wrap .celda-riego{background:#fff;color:#0a5a0a;font-weight:700;font-size:9px;border-color:#9ab8d8}
   .grid-wrap .celda-fito{background:#fdf0e8;color:#7a1a1a;font-weight:700;font-size:9px}
   .grid-wrap .dia-especificos{width:58px;min-width:58px;background:var(--verde-light);color:var(--verde);font-weight:800;position:sticky;left:0;font-size:10px}
   .grid-wrap .hdr-especificos{background:var(--verde-light);color:var(--text);font-weight:800;position:sticky;top:0}
@@ -138,7 +140,7 @@
   .grid-wrap .celda-vacia{color:#ccc;font-size:9px}
 
   /* Estado de calidad (checks por partida) */
-  .checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
   .check-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:.7rem .85rem}
   .check-card .titulo{font-size:12px;font-weight:800;margin-bottom:6px}
   .check-card .tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
@@ -235,7 +237,7 @@
     <button class="nav-tab active" data-pg="trabajos" onclick="showPage('trabajos')"><svg class="icon" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="16" y2="15"/></svg> Trabajos</button>
     <button class="nav-tab" data-pg="partidas" onclick="showPage('partidas')"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Partidas</button>
     <button class="nav-tab" data-pg="riego" onclick="showPage('riego')"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12z"/></svg> Riego</button>
-    <button class="nav-tab" data-pg="fito" onclick="showPage('fito')"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Fitosanitarios</button>
+    <button class="nav-tab" data-pg="fito" onclick="showPage('fito')"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Plaguicidas</button>
     <button class="nav-tab" data-pg="especificos" onclick="showPage('especificos')"><svg class="icon" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9"/><path d="M9 15l9-9 3 3-9 9H9v-3z"/></svg> Especificos</button>
     <button class="nav-tab" data-pg="checksestado" onclick="showPage('checksestado')"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 3 6v6c0 5 4 8 9 10 5-2 9-5 9-10V6z"/></svg> Estado de calidad</button>
     <button class="nav-tab" data-pg="checks" onclick="showPage('checks')"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="8 12 11 15 16 9"/></svg> Control de calidad</button>
@@ -391,6 +393,10 @@ const FIREBASE_DB_URL_FRONTEND = 'https://la-sala-app-default-rtdb.europe-west1.
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 window.supabase = supabase;
 
+function escapar(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 async function checkSesion() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
@@ -445,6 +451,61 @@ window.showPage = function (nombre) {
   if (nombre === 'checksestado' && !checksEstadoCache) cargarChecksEstado();
 };
 
+// Igual que TRABAJOS_SECCIONES/TRABAJOS_SUBSECCIONES/PINZADO_ESTADOS/
+// MUJERES_ESTADOS en La Sala — sección y estado determinan el color y la
+// etiqueta legible que se muestra en cada tarjeta (antes se pintaba la key
+// interna cruda, ej. "mujeres / quitarRaices", y el estado nunca se
+// coloreaba porque se comparaba contra valores que no existen en los datos
+// reales: "completada"/"hecho" en vez de "pinzado"/"completado").
+const TRABAJOS_SECCIONES = [
+  { key: 'mujeres', label: 'Trabajos de Mujeres', color: '#7b5cf0' },
+  { key: 'tunel', label: 'Trabajos de Túnel', color: '#5c8df0' },
+  { key: 'externos', label: 'Trabajos Externos', color: '#f5a35c' },
+];
+const TRABAJOS_SUBSECCIONES = {
+  mujeres: [
+    { key: 'injerto', label: 'Injerto' }, { key: 'recomponer', label: 'Recomponer' },
+    { key: 'pinzar', label: 'Pinzar' }, { key: 'plantar', label: 'Plantar' },
+    { key: 'separar', label: 'Separar' }, { key: 'quitarRaices', label: 'Quitar raíces' },
+  ],
+  tunel: [
+    { key: 'carga', label: 'Carga' }, { key: 'siega', label: 'Siega' }, { key: 'cambios', label: 'Cambios' },
+  ],
+  externos: [
+    { key: 'invernaderistas', label: 'Invernaderistas' }, { key: 'fontanero', label: 'Fontanero' },
+    { key: 'electricidad', label: 'Electricidad' }, { key: 'sueltaAuxiliares', label: 'Suelta de auxiliares' },
+  ],
+};
+const PINZADO_ESTADOS = {
+  sin_pinzar: { label: 'Sin pinzar', color: '#c62828', tinte: '#fdece5' },
+  en_proceso: { label: 'En proceso', color: '#c47f00', tinte: '#fff3e0' },
+  pinzado: { label: 'Pinzado', color: '#2e7d32', tinte: '#e8f5e9' },
+};
+const MUJERES_ESTADOS = {
+  pendiente: { label: 'Pendiente', color: '#c62828', tinte: '#fdece5' },
+  completado: { label: 'Completado', color: '#2e7d32', tinte: '#e8f5e9' },
+};
+
+function labelSeccionTrabajo(seccionKey) {
+  return TRABAJOS_SECCIONES.find(s => s.key === seccionKey)?.label || seccionKey || '';
+}
+function labelSubseccionTrabajo(seccionKey, subKey) {
+  return (TRABAJOS_SUBSECCIONES[seccionKey] || []).find(s => s.key === subKey)?.label || subKey || '';
+}
+function estadoInfoTrabajo(seccionKey, subKey, estado) {
+  if (seccionKey === 'mujeres' && subKey === 'pinzar') return PINZADO_ESTADOS[estado] || PINZADO_ESTADOS.sin_pinzar;
+  if (seccionKey === 'mujeres' && ['recomponer', 'quitarRaices', 'plantar', 'separar'].includes(subKey)) {
+    return MUJERES_ESTADOS[estado] || MUJERES_ESTADOS.pendiente;
+  }
+  return null;
+}
+function formatoFechaLargaCorta(fechaISO) {
+  if (!fechaISO) return '';
+  const f = new Date(fechaISO + 'T00:00:00');
+  if (isNaN(f)) return fechaISO;
+  return f.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
+}
+
 window.cargarTrabajos = async function () {
   const desde = document.getElementById('tr-desde').value;
   const hasta = document.getElementById('tr-hasta').value;
@@ -460,19 +521,24 @@ window.cargarTrabajos = async function () {
   const grid = document.getElementById('tr-grid');
   if (error) { info.textContent = 'Error: ' + error.message; grid.innerHTML = ''; return; }
   info.textContent = `${data.length} resultado(s) (máx. 200)`;
-  const claseEstado = (e) => e === 'completada' || e === 'hecho' ? 'sanidad-ok' : (e === 'sin_pinzar' || e === 'pendiente' ? '' : '');
-  grid.innerHTML = data.map(t => `
-    <div class="check-card">
+  grid.innerHTML = data.map(t => {
+    const seccionInfo = TRABAJOS_SECCIONES.find(s => s.key === t.seccion);
+    const estadoInfo = estadoInfoTrabajo(t.seccion, t.subseccion, t.estado);
+    const personas = t.personas && t.personas.length ? t.personas.join(', ') : '';
+    return `
+    <div class="check-card" style="border-left:4px solid ${seccionInfo ? seccionInfo.color : 'var(--border)'}">
       <div class="cabecera">
-        <span class="fecha">${t.fecha ?? ''}</span>
-        ${t.estado ? `<span class="tag ${claseEstado(t.estado)}">${t.estado}</span>` : ''}
+        <span class="fecha">${escapar(formatoFechaLargaCorta(t.fecha))}</span>
+        ${estadoInfo ? `<span class="tag" style="background:${estadoInfo.tinte};color:${estadoInfo.color};border-color:${estadoInfo.color}55">${escapar(estadoInfo.label)}</span>` : ''}
       </div>
-      <div class="desc">${t.descripcion ?? '—'}</div>
+      <div class="desc">${escapar(t.descripcion) || '—'}</div>
+      ${personas ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${escapar(personas)}</div>` : ''}
       <div class="footer-mini">
-        <span>${t.seccion ?? ''}${t.subseccion ? ' / ' + t.subseccion : ''}</span>
-        <span>${t.origen_pdf_partida ?? ''}</span>
+        <span>${escapar(labelSeccionTrabajo(t.seccion))}${t.subseccion ? ' · ' + escapar(labelSubseccionTrabajo(t.seccion, t.subseccion)) : ''}</span>
+        <span>${escapar(t.origen_pdf_partida ?? '')}</span>
       </div>
-    </div>`).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin resultados</div>`;
+    </div>`;
+  }).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin resultados</div>`;
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -873,6 +939,10 @@ const RIEGO_HIGHLIGHT_POS = {
 function seguimientoDe(datosGrid, p) {
   const inv = p.inv;
   if (!datosGrid || !datosGrid[inv]) return [];
+  // Igual que getSeguimientoRiego/getSeguimientoFito en La Sala: "zona" es el
+  // rango de calles de la propia partida (lo que se ve en la tarjeta como
+  // "Calle"), no solo el texto del riego/tratamiento.
+  const zona = `${p.calle_inicio || ''}${p.calle_fin && p.calle_fin !== p.calle_inicio ? ' – ' + p.calle_fin : ''}` || '—';
   const resultados = [];
   for (const dia of Object.keys(datosGrid[inv])) {
     const diaData = datosGrid[inv][dia];
@@ -881,10 +951,54 @@ function seguimientoDe(datosGrid, p) {
       if (!calleAfectadaEnRango(p, calle)) continue;
       const val = diaData[calle];
       const texto = typeof val === 'string' ? val : (val?.texto ?? '');
-      if (texto && !vistos.has(texto)) { vistos.add(texto); resultados.push({ dia, texto }); }
+      if (texto && !vistos.has(texto)) { vistos.add(texto); resultados.push({ dia, texto, zona }); }
     }
   }
   return resultados.sort((a, b) => Number(a.dia) - Number(b.dia));
+}
+
+// Igual que los checkBtn de _renderPartidaDetail en La Sala: cada categoría
+// (color/tamaño/sanidad/flores/raíces) tiene sus propias opciones, icono y
+// color. Se usa tanto en "Estado de calidad" como en el modal de detalle de
+// Partidas, para Entrada y para Carga (mismo set de categorías, con sufijo
+// "_carga" en las claves del segundo caso).
+const CHECKS_CATEGORIAS = [
+  { key: 'color', label: 'Color', opciones: [
+    { val: 'VERDE', label: 'Verde', icon: '🟢', color: '#1b5e20' },
+    { val: 'VERDE_CLARO', label: 'Verde claro', icon: '🍀', color: '#558b2f' },
+    { val: 'AMARILLO', label: 'Amarillo', icon: '🟡', color: '#f9a825' },
+  ] },
+  { key: 'tamano', label: 'Tamaño', opciones: [
+    { val: 'GRANDE', label: 'Grande', icon: '📏', color: '#1558a0' },
+    { val: 'PEQUENO', label: 'Pequeño', icon: '🔹', color: '#546e7a' },
+  ] },
+  { key: 'sanidad', label: 'Sanidad', opciones: [
+    { val: 'OK', label: 'OK', icon: '✓', color: '#2e7d32' },
+    { val: 'ENFERMA', label: 'Enferma', icon: '⚠', color: '#c62828' },
+  ] },
+  { key: 'flores', label: 'Flores', opciones: [
+    { val: 'SI', label: 'Sí', icon: '🌸', color: '#ad1457' },
+    { val: 'NO', label: 'No', icon: '✕', color: '#546e7a' },
+  ] },
+  { key: 'raices', label: 'Raíces', opciones: [
+    { val: 'OK', label: 'OK', icon: '✓', color: '#2e7d32' },
+    { val: 'POCA_RAIZ', label: 'Poca raíz', icon: '⚠', color: '#e65100' },
+    { val: 'RAIZ_EN_VARIEDAD', label: 'Raíz en variedad', icon: '🔬', color: '#6a1b9a' },
+  ] },
+];
+
+function renderChecksCategoriaPills(c, sufijo) {
+  return `<div class="control-categorias-grid">${CHECKS_CATEGORIAS.map(cat => {
+    const valorActual = c[cat.key + sufijo];
+    const opcionesHTML = cat.opciones.map(o => {
+      const activo = valorActual === o.val;
+      return `<span class="control-pill" style="background:${activo ? o.color : '#eef0ec'};color:${activo ? '#fff' : 'var(--muted)'}">${activo ? o.icon + ' ' : ''}${escapar(o.label)}</span>`;
+    }).join('');
+    return `<div><div class="control-categoria-titulo">${cat.label}</div><div class="control-pills">${opcionesHTML}</div></div>`;
+  }).join('')}</div>`;
+}
+function tieneAlgunCheckCarga(c) {
+  return CHECKS_CATEGORIAS.some(cat => c[cat.key + '_carga']) || !!c.obs_carga;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -947,30 +1061,30 @@ function buildPartidaCard(p) {
 
   const riegoHTML = riegoItems.length ? `<div class="seg-box riego">
       <div class="titulo">Riego</div>
-      ${riegoItems.slice(0, 3).map(r => `<div><b>${formatoFechaCorta(diaAFecha(r.dia))}:</b> ${r.texto}</div>`).join('')}
+      ${riegoItems.slice(0, 3).map(r => `<div><b>Día ${escapar(r.dia)}</b> (${formatoFechaCorta(diaAFecha(r.dia))}): ${escapar(r.texto)} <span style="color:var(--muted)">(${escapar(r.zona)})</span></div>`).join('')}
       ${riegoItems.length > 3 ? `<div style="color:var(--muted)">+${riegoItems.length - 3} más</div>` : ''}
     </div>` : '';
 
   const fitoHTML = fitoItems.length ? `<div class="seg-box fito">
-      <div class="titulo">Fitosanitarios</div>
-      ${fitoItems.slice(0, 3).map(f => `<div><b>${formatoFechaCorta(diaAFecha(f.dia))}:</b> ${f.texto}</div>`).join('')}
+      <div class="titulo">Plaguicidas</div>
+      ${fitoItems.slice(0, 3).map(f => `<div><b>Día ${escapar(f.dia)}</b> (${formatoFechaCorta(diaAFecha(f.dia))}): ${escapar(f.texto)} <span style="color:var(--muted)">(${escapar(f.zona)})</span></div>`).join('')}
       ${fitoItems.length > 3 ? `<div style="color:var(--muted)">+${fitoItems.length - 3} más</div>` : ''}
     </div>` : '';
 
   return `<div class="partida-card" onclick='abrirPartidaDetalle(${JSON.stringify(p.num)},${JSON.stringify(inv)})'>
     ${imgHTML}
     <div class="body">
-      <div class="num">${p.num}</div>
-      <div class="variedad">${p.variedad || '—'}</div>
-      <div class="cliente">${p.cliente || '—'}</div>
+      <div class="num">${escapar(p.num)}</div>
+      <div class="variedad">${escapar(p.variedad) || '—'}</div>
+      <div class="cliente">${escapar(p.cliente) || '—'}</div>
       <div class="badges">
-        <span class="mini-badge ${isPinzado ? 'ok' : 'pend'}">✂ ${isPinzado ? ('Pinzado' + (pinzFecha ? ' ' + pinzFecha : '')) : 'Pendiente'}</span>
+        <span class="mini-badge ${isPinzado ? 'ok' : 'pend'}">✂ ${isPinzado ? ('Pinzado' + (pinzFecha ? ' ' + escapar(pinzFecha) : '')) : 'Pendiente de pinzar'}</span>
         <span class="mini-badge ${tieneFoto ? 'ok' : 'no'}">📷 ${tieneFoto ? 'Foto entrada' : 'Sin foto'}</span>
       </div>
       ${riegoHTML}${fitoHTML}
       <div class="footer">
-        <span>INV ${inv} · ${p.calle_inicio || '—'}</span>
-        <span class="entrega">${p.entrega || '—'}</span>
+        <span>INV ${escapar(inv)} · ${escapar(p.calle_inicio) || '—'}</span>
+        <span class="entrega">${escapar(p.entrega) || '—'}</span>
       </div>
     </div>
   </div>`;
@@ -982,16 +1096,77 @@ window.abrirPartidaDetalle = function (num, inv) {
   document.getElementById('pt-modal-titulo').textContent = `${p.num} — ${p.variedad || ''}`;
   const k = p.num + '|' + inv;
   const checkInfo = partidasCache.checks[k] || {};
+  const riegoItems = seguimientoDe(partidasCache.riego, p);
+  const fitoItems = seguimientoDe(partidasCache.fito, p);
+
   const campos = [
     ['Cliente', p.cliente], ['Variedad', p.variedad], ['Invernadero', inv], ['Lado', p.lado],
     ['Calle', `${p.calle_inicio || ''}${p.calle_fin && p.calle_fin !== p.calle_inicio ? ' – ' + p.calle_fin : ''}`],
-    ['Soporte', p.soporte], ['Entrada', p.entrada], ['Entrega', p.entrega],
-    ['Pinzado previsto', p.pinzado], ['Pinzado real', p.pinzadoFechaReal || checkInfo.pinzadoFechaReal || (checkInfo.pinzado === 'SI' ? 'Sí' : 'Pendiente')],
-    ['Color', checkInfo.color], ['Tamaño', checkInfo.tamano], ['Sanidad', checkInfo.sanidad],
-    ['Flores', checkInfo.flores], ['Raíces', checkInfo.raices], ['Observaciones', checkInfo.obs],
+    ['Soporte', p.soporte], ['Entrada', p.entrada], ['Entrega', p.entrega], ['Pinzado previsto', p.pinzado],
   ].filter(([, v]) => v);
-  document.getElementById('pt-modal-body').innerHTML = campos.map(([k2, v]) =>
-    `<div class="campo-row"><span class="k">${k2}</span><span class="v">${v}</span></div>`).join('');
+
+  const pinzadoSI = checkInfo.pinzado === 'SI' || !!p.pinzadoRealizado;
+  const pinzadoFecha = p.pinzadoFechaReal || checkInfo.pinzadoFechaReal || '';
+
+  function tablaSeguimiento(items, cabColor, cabBg, vacioTexto) {
+    if (!items.length) return `<div style="font-size:12px;color:#aaa;font-style:italic;padding:8px 0">${vacioTexto}</div>`;
+    return `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
+      <thead><tr style="background:${cabBg}">
+        <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);color:${cabColor};font-size:10px;white-space:nowrap">Día</th>
+        <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);color:${cabColor};font-size:10px">Texto</th>
+        <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);color:${cabColor};font-size:10px">Calles</th>
+      </tr></thead>
+      <tbody>${items.map((r, i) => `<tr style="background:${i % 2 === 0 ? '#fff' : '#f8fbff'}">
+        <td style="padding:5px 8px;border:1px solid var(--border);font-weight:700;white-space:nowrap;color:${cabColor}">Día ${escapar(r.dia)} (${formatoFechaCorta(diaAFecha(r.dia))})</td>
+        <td style="padding:5px 8px;border:1px solid var(--border)">${escapar(r.texto)}</td>
+        <td style="padding:5px 8px;border:1px solid var(--border);color:${cabColor};font-size:10px;font-weight:600">${escapar(r.zona)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  const fotosHTML = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px">
+    ${p.fotoEntradaB64
+      ? `<div><img src="${p.fotoEntradaB64}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;display:block"><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto entrada</div></div>`
+      : `<div><div style="height:100px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">Sin foto</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto entrada</div></div>`}
+    ${p.fotoSalida
+      ? `<div><img src="${p.fotoSalida}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;display:block"><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto salida</div></div>`
+      : `<div><div style="height:100px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">Sin foto</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto salida</div></div>`}
+  </div>`;
+
+  document.getElementById('pt-modal-body').innerHTML = `
+    ${campos.map(([k2, v]) => `<div class="campo-row"><span class="k">${k2}</span><span class="v">${escapar(v)}</span></div>`).join('')}
+
+    <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:800;margin-bottom:6px">Control Calidad Entrada</div>
+      <div style="margin-bottom:6px">
+        <span class="tag" style="background:${pinzadoSI ? '#e8f5e9' : '#fff8e1'};color:${pinzadoSI ? '#2e7d32' : '#f57f17'};border-color:${pinzadoSI ? '#a5d6a7' : '#ffe082'}">✂ ${pinzadoSI ? 'Pinzado' + (pinzadoFecha ? ' ' + escapar(pinzadoFecha) : '') : 'Pendiente de pinzar'}</span>
+      </div>
+      ${renderChecksCategoriaPills(checkInfo, '')}
+      ${checkInfo.obs ? `<div class="obs" style="margin-top:6px">${escapar(checkInfo.obs)}</div>` : ''}
+    </div>
+
+    ${tieneAlgunCheckCarga(checkInfo) || p.fechaTecnico ? `
+    <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:800;margin-bottom:6px">Control Calidad Carga${p.fechaTecnico ? ' · ' + escapar(p.fechaTecnico) : ''}</div>
+      ${renderChecksCategoriaPills(checkInfo, '_carga')}
+      ${checkInfo.obs_carga ? `<div class="obs" style="margin-top:6px">${escapar(checkInfo.obs_carga)}</div>` : ''}
+    </div>` : ''}
+
+    <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:800;margin-bottom:6px">Fotografías</div>
+      ${fotosHTML}
+    </div>
+
+    <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:800;color:#1558a0;margin-bottom:2px">Registro de riego</div>
+      ${tablaSeguimiento(riegoItems, '#1558a0', '#e8f0fb', 'Sin registros de riego para estas calles.')}
+    </div>
+
+    <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:800;color:#a32020;margin-bottom:2px">Registro de plaguicidas</div>
+      ${tablaSeguimiento(fitoItems, '#a32020', '#fdf0f0', 'Sin registros de plaguicidas para estas calles.')}
+    </div>
+  `;
   document.getElementById('pt-modal').classList.add('visible');
 };
 
@@ -1259,7 +1434,14 @@ window.renderGrid = function (tipo) {
   info.textContent = `${layout?.label || 'INV ' + inv} — copia del ${new Date(cache.capturadoEn).toLocaleString('es-ES')}`;
 
   const { dia: claseDia, hdr: claseHdr, celda: claseCelda } = GRID_ESTILOS[tipo];
-  const colorBanda = { riego: 'var(--blue)', fito: 'var(--red)', especificos: 'var(--verde)' }[tipo];
+  const colorBanda = { riego: '#1558a0', fito: '#a32020', especificos: 'var(--verde)' }[tipo];
+  const fondoBanda = { riego: '#f0f4f8', fito: '#fdf0f0', especificos: 'var(--verde-light)' }[tipo];
+  const navClase = { riego: 'mod-riego', fito: 'mod-fito', especificos: '' }[tipo];
+  const nav = document.querySelector(`#pg-${tipo} .quincena-nav`);
+  if (nav && navClase) nav.classList.add(navClase);
+  // Igual que en La Sala: solo Riego/Plaguicidas envuelven el texto entre
+  // corchetes de color (Corchete = rango de calles); Específicos no.
+  const colorCorchete = { riego: '#0a7a0a', fito: '#a32020' }[tipo];
 
   function rawDe(diaData, calle) { return diaData[calle]; }
   function textoDe(diaData, calle) {
@@ -1307,7 +1489,11 @@ window.renderGrid = function (tipo) {
       return brackets;
     }
 
-    const hdr = `<tr><td class="${claseDia} ${claseHdr}"></td>${calles.map(c => `<td class="${claseHdr}">${c}</td>`).join('')}<td class="${claseHdr}" style="font-size:9px">Día semana</td></tr>`;
+    // Igual que en La Sala: la cabecera de Riego no lleva celda de "Día
+    // semana" (aunque cada fila sí trae ese dato) — en Fitosanitarios y
+    // Específicos sí se etiqueza esa columna.
+    const hdrSemana = tipo === 'riego' ? '' : `<td class="${claseHdr}" style="font-size:9px">Día semana</td>`;
+    const hdr = `<tr><td class="${claseDia} ${claseHdr}"></td>${calles.map(c => `<td class="${claseHdr}">${c}</td>`).join('')}${hdrSemana}</tr>`;
 
     const filas = dias.map(dia => {
       const posEnBloque = dia - dias[0];
@@ -1326,7 +1512,10 @@ window.renderGrid = function (tipo) {
           const escapado = br.texto.replace(/"/g, '&quot;');
           const bg = resaltado ? resaltado.bg : colorCelda(br);
           const estiloBg = bg ? `background:${bg}` : '';
-          celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px;${estiloBg}">${br.texto}</td>`;
+          const contenido = colorCorchete
+            ? `<span style="color:${colorCorchete};font-weight:900">[ </span>${escapar(br.texto)}<span style="color:${colorCorchete};font-weight:900"> ]</span>`
+            : escapar(br.texto);
+          celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px;${estiloBg}">${contenido}</td>`;
           i += br.span;
         } else {
           const estiloBg = resaltado ? `style="background:${resaltado.bg}"` : '';
@@ -1340,7 +1529,7 @@ window.renderGrid = function (tipo) {
     }).join('');
 
     return `
-      <div class="fila-titulo" style="border-bottom:2px solid ${colorBanda}">${etiqueta}</div>
+      <div class="fila-titulo" style="border-bottom:2px solid ${colorBanda};color:${colorBanda};background:${fondoBanda};text-align:center">${etiqueta}</div>
       <div class="grid-wrap"><table>${hdr}${filas}</table></div>`;
   }
 
@@ -1364,38 +1553,48 @@ window.cargarChecksEstado = async function () {
   const info = document.getElementById('ce-info');
   info.textContent = 'Cargando...';
   try {
-    const snap = await fetchSnapshot('checks');
-    checksEstadoCache = { datos: snap.datos_raw || {}, capturadoEn: snap.capturado_en };
+    const [snap, partidasSnap] = await Promise.all([fetchSnapshot('checks'), fetchSnapshot('partidas')]);
+    const partidasPorClave = {};
+    (partidasSnap.datos_raw || []).forEach(p => { partidasPorClave[p.num + '|' + (p.inv || '')] = p; });
+    checksEstadoCache = { datos: snap.datos_raw || {}, partidas: partidasPorClave, capturadoEn: snap.capturado_en };
     renderChecksEstado();
   } catch (e) {
     info.textContent = 'Error: ' + e.message;
   }
 };
 
+window.abrirDetalleDesdeEstado = async function (num, inv) {
+  if (!partidasCache) await cargarPartidas();
+  abrirPartidaDetalle(num, inv);
+};
+
 window.renderChecksEstado = function () {
   if (!checksEstadoCache) return;
   const q = document.getElementById('ce-buscar').value.trim().toLowerCase();
-  const entradas = Object.entries(checksEstadoCache.datos)
-    .filter(([k]) => k.toLowerCase().includes(q));
+  const entradas = Object.entries(checksEstadoCache.datos).filter(([k]) => {
+    const p = checksEstadoCache.partidas[k];
+    const texto = [k, p?.variedad, p?.cliente].filter(Boolean).join(' ').toLowerCase();
+    return texto.includes(q);
+  });
 
   document.getElementById('ce-info').textContent =
     `${entradas.length} de ${Object.keys(checksEstadoCache.datos).length} — copia del ${new Date(checksEstadoCache.capturadoEn).toLocaleString('es-ES')}`;
 
   document.getElementById('ce-grid').innerHTML = entradas.map(([clave, c]) => {
     const [num, inv] = clave.split('|');
-    const sanidadClase = c.sanidad === 'OK' ? 'sanidad-ok' : (c.sanidad ? 'sanidad-mal' : '');
-    const tags = [
-      c.pinzado && `<span class="tag">Pinzado: ${c.pinzado}</span>`,
-      c.color && `<span class="tag">${c.color}</span>`,
-      c.tamano && `<span class="tag">${c.tamano}</span>`,
-      c.sanidad && `<span class="tag ${sanidadClase}">Sanidad: ${c.sanidad}</span>`,
-      c.flores && `<span class="tag">Flores: ${c.flores}</span>`,
-      c.raices && `<span class="tag">${c.raices}</span>`,
-    ].filter(Boolean).join('');
-    return `<div class="check-card">
-      <div class="titulo">${num} · INV ${inv || '—'}</div>
-      <div class="tags">${tags}</div>
-      ${c.obs ? `<div class="obs">${c.obs}</div>` : ''}
+    const p = checksEstadoCache.partidas[clave];
+    const pinzadoSI = c.pinzado === 'SI';
+    return `<div class="check-card" style="cursor:pointer" onclick='abrirDetalleDesdeEstado(${JSON.stringify(num)},${JSON.stringify(inv)})'>
+      <div class="titulo">${escapar(num)} · INV ${escapar(inv || '—')}</div>
+      ${p ? `<div style="font-size:11px;color:var(--muted);margin:-4px 0 8px">${escapar(p.variedad) || '—'} — ${escapar(p.cliente) || '—'}</div>` : ''}
+      ${c.pinzado ? `<span class="tag" style="background:${pinzadoSI ? '#e8f5e9' : '#fff8e1'};color:${pinzadoSI ? '#2e7d32' : '#f57f17'};border-color:${pinzadoSI ? '#a5d6a7' : '#ffe082'}">✂ ${pinzadoSI ? 'Pinzado' + (c.pinzadoFechaReal ? ' ' + escapar(c.pinzadoFechaReal) : '') : 'Pendiente de pinzar'}</span>` : ''}
+      <div class="control-categoria-titulo" style="margin-top:8px">Control Calidad Entrada</div>
+      ${renderChecksCategoriaPills(c, '')}
+      ${c.obs ? `<div class="obs">${escapar(c.obs)}</div>` : ''}
+      ${tieneAlgunCheckCarga(c) || p?.fechaTecnico ? `
+      <div class="control-categoria-titulo" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">Control Calidad Carga${p?.fechaTecnico ? ' · ' + escapar(p.fechaTecnico) : ''}</div>
+      ${renderChecksCategoriaPills(c, '_carga')}
+      ${c.obs_carga ? `<div class="obs">${escapar(c.obs_carga)}</div>` : ''}` : ''}
     </div>`;
   }).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin resultados</div>`;
 };
