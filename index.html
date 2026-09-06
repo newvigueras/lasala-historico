@@ -554,6 +554,22 @@ const CONTROL_SECCIONES = [
   { key: 'invernadero', label: 'Check Invernadero', color: 'linear-gradient(135deg,#1a5c2e,#3fa864)', conCheck: false },
   { key: 'fechas', label: 'Check Fechas', color: 'linear-gradient(135deg,#7b5cf0,#5c8df0)', conCheck: false },
   { key: 'productos', label: 'Check Prueba de Productos', color: 'linear-gradient(135deg,#c47f00,#e0a530)', conCheck: false },
+  // Conteo Tuta: no es un checklist por día, es una tabla semanal (datos cada
+  // jueves) — igual que en La Sala, marcada con "tabla:true".
+  { key: 'conteo_tuta', label: 'Conteo Tuta', color: 'linear-gradient(135deg,#ad1457,#ec407a)', conCheck: false, tabla: true },
+];
+
+// Invernaderos/casetas de la trampa de Tuta — 19 y 20 tienen dos casetas cada
+// uno (verde y blanca), el resto una sola fila. Igual que CONTEO_TUTA_FILAS
+// en La Sala.
+const CONTEO_TUTA_FILAS = [
+  { key: '0A', label: 'INV 0A' }, { key: '0B', label: 'INV 0B' },
+  { key: '1A', label: 'INV 1A' }, { key: '1B', label: 'INV 1B' },
+  { key: '3A', label: 'INV 3A' }, { key: '10A', label: 'INV 10A' },
+  { key: '10B', label: 'INV 10B' }, { key: '11A', label: 'INV 11A' },
+  { key: '15', label: 'INV 15' }, { key: '17', label: 'INV 17' },
+  { key: '19-verde', label: 'INV 19 — Caseta verde' }, { key: '19-blanca', label: 'INV 19 — Caseta blanca' },
+  { key: '20-verde', label: 'INV 20 — Caseta verde' }, { key: '20-blanca', label: 'INV 20 — Caseta blanca' },
 ];
 
 const CONTROL_CHECK_CATEGORIAS = [
@@ -585,6 +601,17 @@ let controlDiaSel = null;
 let controlVista = 'lineas';
 let controlFiltroEstado = 'todos';
 let controlInvFiltro = '';
+
+let conteoTutaCache = null; // { [dia]: { [invCasetaKey]: {feromona, placa, conteo} } }
+let conteoTutaQuincenaOffset = null;
+let conteoTutaDiaSel = null;
+let conteoTutaVista = 'datos';
+
+// El conteo de Tuta solo se hace los jueves de cada semana, igual que en La
+// Sala (a petición de Paula, no tiene sentido mostrarlo el resto de días).
+function esJuevesConteoTuta(dia) {
+  return diaAFecha(dia).getDay() === 4;
+}
 
 function controlLineaCompletada(c) {
   return CONTROL_CHECK_CATEGORIAS.every(cat => c[cat.key] && Object.values(c[cat.key]).some(v => v));
@@ -622,12 +649,39 @@ window.cargarControlModulo = async function () {
       }
     } catch (e) { /* si Firebase no responde, seguimos solo con lo archivado */ }
 
+    let liveConteoTuta = {};
+    try {
+      const res2 = await fetch(`${FIREBASE_DB_URL_FRONTEND}/lasala-conteo-tuta-v1.json`);
+      const raw2 = await res2.text();
+      if (raw2 !== 'null') {
+        const inner2 = JSON.parse(raw2);
+        liveConteoTuta = typeof inner2 === 'string' ? JSON.parse(inner2) : inner2;
+      }
+    } catch (e) { /* si Firebase no responde, seguimos solo con lo archivado */ }
+
     const { data: archivado } = await supabase.from('control_checks').select('datos_raw').limit(3000);
+    const { data: archivadoTuta } = await supabase.from('grid_historico').select('dia, invernadero, dato_raw').eq('dominio', 'conteo_tuta');
 
     const porId = new Map();
     (archivado || []).forEach(r => { if (r.datos_raw && r.datos_raw.id) porId.set(r.datos_raw.id, r.datos_raw); });
     (liveArr || []).forEach(c => { if (c && c.id) porId.set(c.id, c); });
     controlChecksCache = Array.from(porId.values());
+
+    // Igual que con los checks: lo archivado (>15 días) viene de
+    // grid_historico, lo reciente directo de Firebase — se combinan para no
+    // dejar ninguna semana sin ver.
+    const tutaMerged = {};
+    (archivadoTuta || []).forEach(r => {
+      tutaMerged[r.dia] = tutaMerged[r.dia] || {};
+      tutaMerged[r.dia][r.invernadero] = r.dato_raw;
+    });
+    Object.keys(liveConteoTuta || {}).forEach(dia => {
+      tutaMerged[dia] = tutaMerged[dia] || {};
+      Object.keys(liveConteoTuta[dia] || {}).forEach(invKey => {
+        tutaMerged[dia][invKey] = liveConteoTuta[dia][invKey];
+      });
+    });
+    conteoTutaCache = tutaMerged;
   } catch (e) {
     document.getElementById('control-resumen').innerHTML = `<div class="info">Error: ${e.message}</div>`;
     return;
@@ -642,7 +696,9 @@ function renderControlModulo() {
     const n = s.conCheck ? controlChecksCache.filter(c => c.tipo === s.key).length : null;
     return `<div class="control-seccion-card ${controlSeccion === s.key ? 'activa' : ''}" style="background:${s.color}" onclick="seleccionarControlSeccion('${s.key}')">
       <div class="titulo">${s.label}</div>
-      ${n != null ? `<div class="numero">${n}</div><div class="sub">línea${n === 1 ? '' : 's'} registrada${n === 1 ? '' : 's'}</div>` : `<div class="sub" style="font-style:italic">Próximamente</div>`}
+      ${n != null ? `<div class="numero">${n}</div><div class="sub">línea${n === 1 ? '' : 's'} registrada${n === 1 ? '' : 's'}</div>`
+        : s.tabla ? `<div class="sub" style="margin-top:10px">Tabla semanal</div>`
+        : `<div class="sub" style="font-style:italic">Próximamente</div>`}
     </div>`;
   }).join('')}</div>`;
 
@@ -677,7 +733,120 @@ window.cambiarControlVista = function (v) { controlVista = v; renderControlModul
 window.cambiarControlFiltroEstado = function (v) { controlFiltroEstado = v; renderControlModulo(); };
 window.cambiarControlInvFiltro = function (v) { controlInvFiltro = v; renderControlModulo(); };
 
+window.cambiarConteoTutaQuincena = function (delta) {
+  conteoTutaQuincenaOffset = Math.max(0, conteoTutaQuincenaOffset + delta);
+  conteoTutaDiaSel = null;
+  renderControlModulo();
+};
+window.cambiarConteoTutaDia = function (dia) {
+  conteoTutaDiaSel = Number(dia);
+  renderControlModulo();
+};
+window.cambiarConteoTutaVista = function (v) { conteoTutaVista = v; renderControlModulo(); };
+
+function renderConteoTutaSeccion(seccion) {
+  if (conteoTutaQuincenaOffset === null) conteoTutaQuincenaOffset = quincenaOffsetActual();
+  const diasQ = quincenaDiasDe(conteoTutaQuincenaOffset).filter(esJuevesConteoTuta);
+  if (conteoTutaDiaSel == null || !diasQ.includes(conteoTutaDiaSel)) {
+    conteoTutaDiaSel = diasQ.includes(diaDeHoy()) ? diaDeHoy() : (diasQ[0] ?? null);
+  }
+
+  const vistaToggleHTML = `
+    <div class="control-vista-toggle">
+      <button class="${conteoTutaVista === 'datos' ? 'activo' : ''}" style="${conteoTutaVista === 'datos' ? `background:${seccion.color}` : ''}" onclick="cambiarConteoTutaVista('datos')">📋 Datos</button>
+      <button class="${conteoTutaVista === 'dashboard' ? 'activo' : ''}" style="${conteoTutaVista === 'dashboard' ? `background:${seccion.color}` : ''}" onclick="cambiarConteoTutaVista('dashboard')">📊 Dashboard</button>
+    </div>`;
+
+  if (conteoTutaVista === 'dashboard') return vistaToggleHTML + renderConteoTutaDashboard(seccion);
+
+  const diaBotonesHTML = diasQ.length
+    ? diasQ.map(d => `
+      <button class="control-dia-btn ${d === conteoTutaDiaSel ? 'activo' : ''}" style="${d === conteoTutaDiaSel ? `background:${seccion.color}` : ''}" onclick="cambiarConteoTutaDia(${d})">
+        ${formatoFechaCorta(diaAFecha(d))}<br><span>${diaSemanaDe(d).slice(0, 3)}</span>
+      </button>`).join('')
+    : `<div style="font-size:12px;color:var(--muted);font-style:italic;padding:.5rem 0">Esta quincena no tiene ningún jueves.</div>`;
+
+  const datosSemana = (conteoTutaDiaSel != null && conteoTutaCache?.[conteoTutaDiaSel]) || {};
+  const tarjetasHTML = CONTEO_TUTA_FILAS.map(f => {
+    const d = datosSemana[f.key] || {};
+    return `<div style="border-radius:14px;padding:14px 16px;background:${seccion.color};color:#fff">
+      <div style="font-size:14px;font-weight:800;margin-bottom:10px">${escapar(f.label)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><div style="font-size:9px;font-weight:800;opacity:.85;text-transform:uppercase;letter-spacing:.03em">Feromona</div><div style="font-size:12px;font-weight:700;margin-top:3px">${d.feromona ? escapar(d.feromona) : '—'}</div></div>
+        <div><div style="font-size:9px;font-weight:800;opacity:.85;text-transform:uppercase;letter-spacing:.03em">Cambio placa</div><div style="font-size:12px;font-weight:700;margin-top:3px">${d.placa ? escapar(d.placa) : '—'}</div></div>
+      </div>
+      <div style="margin-top:8px"><div style="font-size:9px;font-weight:800;opacity:.85;text-transform:uppercase;letter-spacing:.03em">Conteo</div><div style="font-size:20px;font-weight:800;margin-top:3px">${d.conteo != null && d.conteo !== '' ? escapar(d.conteo) : '—'}</div></div>
+    </div>`;
+  }).join('');
+
+  return `
+    ${vistaToggleHTML}
+    <div class="control-quincena-nav">
+      <button onclick="cambiarConteoTutaQuincena(-1)" ${conteoTutaQuincenaOffset <= 0 ? 'disabled' : ''}>‹</button>
+      <span>Quincena ${conteoTutaQuincenaOffset + 1} · ${formatoFechaCorta(diaAFecha(quincenaDiasDe(conteoTutaQuincenaOffset)[0]))} – ${formatoFechaCorta(diaAFecha(quincenaDiasDe(conteoTutaQuincenaOffset)[13]))}</span>
+      <button onclick="cambiarConteoTutaQuincena(1)">›</button>
+    </div>
+    <div class="control-dias-row">${diaBotonesHTML}</div>
+    <div class="control-categorias-grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">${tarjetasHTML}</div>
+  `;
+}
+
+// Comparativa de las últimas 8 semanas con dato, con % de subida/bajada
+// respecto a la semana anterior — igual que renderConteoTutaDashboardHTML en
+// La Sala.
+function renderConteoTutaDashboard(seccion) {
+  const semanas = Object.keys(conteoTutaCache || {}).map(Number).sort((a, b) => a - b);
+  if (!semanas.length) {
+    return `<div class="info" style="font-style:italic;padding:2rem;text-align:center">Todavía no hay datos de ninguna semana.</div>`;
+  }
+  const ultimas = semanas.slice(-8);
+  const filasHTML = CONTEO_TUTA_FILAS.map(f => {
+    const valores = ultimas.map(dia => {
+      const v = conteoTutaCache[dia]?.[f.key]?.conteo;
+      return (v != null && v !== '') ? parseFloat(v) : null;
+    });
+    const conocidos = valores.filter(v => v != null);
+    const max = Math.max(1, ...conocidos);
+    const ultimo = valores[valores.length - 1];
+    const penultimo = [...valores].slice(0, -1).reverse().find(v => v != null);
+    let cambioHTML = '<span style="font-size:11px;color:var(--muted)">—</span>';
+    if (ultimo != null && penultimo != null) {
+      if (penultimo === 0) {
+        cambioHTML = ultimo > 0 ? `<span style="font-size:11px;font-weight:800;color:#c62828">nuevo</span>` : `<span style="font-size:11px;font-weight:800;color:#2e7d32">0</span>`;
+      } else {
+        const pct = Math.round(((ultimo - penultimo) / penultimo) * 100);
+        const subida = pct > 0;
+        cambioHTML = `<span style="font-size:11px;font-weight:800;color:${subida ? '#c62828' : (pct < 0 ? '#2e7d32' : 'var(--muted)')}">${subida ? '▲' : (pct < 0 ? '▼' : '=')} ${Math.abs(pct)}%</span>`;
+      }
+    }
+    const barrasHTML = ultimas.map((dia, i) => {
+      const v = valores[i];
+      const alturaPct = v != null ? Math.max(6, Math.round((v / max) * 100)) : 2;
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0">
+        <div style="width:100%;height:56px;display:flex;align-items:flex-end">
+          <div title="${formatoFechaCorta(diaAFecha(dia))}: ${v != null ? v : 'sin dato'}" style="width:100%;height:${alturaPct}%;background:${v != null ? seccion.color : '#e0e0e0'};border-radius:4px 4px 0 0;min-height:2px"></div>
+        </div>
+        <div style="font-size:8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${formatoFechaCorta(diaAFecha(dia))}</div>
+      </div>`;
+    }).join('');
+    return `<div style="border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
+        <div style="font-size:13px;font-weight:800;color:var(--text)">${escapar(f.label)}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-size:16px;font-weight:800;color:var(--text)">${ultimo != null ? ultimo : '—'}</span>
+          ${cambioHTML}
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end">${barrasHTML}</div>
+    </div>`;
+  }).join('');
+  return `
+    <div style="font-size:11px;color:var(--muted);margin:4px 0 10px">Comparativa de conteo (últimas ${ultimas.length} semana${ultimas.length === 1 ? '' : 's'} con datos) — <span style="color:#c62828;font-weight:800">▲ rojo</span> sube la captura, <span style="color:#2e7d32;font-weight:800">▼ verde</span> baja.</div>
+    <div class="control-categorias-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${filasHTML}</div>`;
+}
+
 function renderControlSeccion(seccion) {
+  if (seccion.tabla) return renderConteoTutaSeccion(seccion);
   if (!seccion.conCheck) {
     return `<div class="info" style="font-style:italic;padding:2rem;text-align:center">Próximamente — esta comprobación todavía no existe en La Sala.</div>`;
   }
