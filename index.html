@@ -146,6 +146,58 @@
   .tag.sanidad-ok{background:var(--verde-light);color:var(--verde);border-color:var(--verde-border)}
   .tag.sanidad-mal{background:var(--red-light);color:var(--red);border-color:var(--red-border)}
   .check-card .obs{font-size:11px;color:var(--muted);margin-top:5px;font-style:italic}
+
+  /* Módulo Control (Check Túnel / Check Carga), igual que en La Sala */
+  .control-secciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:1.25rem}
+  .control-seccion-card{cursor:pointer;color:#fff;border-radius:var(--r);padding:1.1rem 1.2rem;box-shadow:0 4px 14px rgba(0,0,0,.1);transition:transform .1s}
+  .control-seccion-card:hover{transform:translateY(-2px)}
+  .control-seccion-card.activa{outline:3px solid rgba(0,0,0,.2)}
+  .control-seccion-card .titulo{font-size:12px;font-weight:700;opacity:.95}
+  .control-seccion-card .numero{font-size:26px;font-weight:800;margin-top:6px}
+  .control-seccion-card .sub{font-size:11px;opacity:.9;margin-top:2px}
+
+  .control-quincena-nav{display:flex;align-items:center;gap:8px;background:var(--verde);color:#fff;border-radius:var(--rs);padding:6px 10px;margin-bottom:.7rem;width:fit-content}
+  .control-quincena-nav button{width:24px;height:24px;border-radius:5px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer;font-size:14px}
+  .control-quincena-nav button:disabled{opacity:.35;cursor:default}
+  .control-quincena-nav span{font-size:12px;font-weight:700;white-space:nowrap}
+
+  .control-dias-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:1rem}
+  .control-dia-btn{flex-shrink:0;padding:7px 11px;border-radius:var(--rs);font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--text);text-align:center;line-height:1.5}
+  .control-dia-btn.activo{border-color:transparent;color:#fff}
+
+  .control-vista-toggle{display:flex;gap:4px;margin-bottom:1rem}
+  .control-vista-toggle button{padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:800;border:none;cursor:pointer;background:#e8e2dc;color:var(--muted)}
+  .control-vista-toggle button.activo{color:#fff}
+
+  .control-filtros-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+  .control-filtro-btn{padding:7px 14px;border-radius:999px;font-size:11px;font-weight:800;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--text)}
+  .control-filtro-btn.activo{border-color:transparent;color:#fff}
+
+  .control-lineas-lista{display:flex;flex-direction:column;gap:12px}
+  .control-card{border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;background:var(--surface)}
+  .control-card-cliente{font-size:14px;font-weight:800}
+  .control-card-partida{font-size:19px;font-weight:900;color:var(--blue);margin-top:3px;letter-spacing:.02em}
+  .control-card-badges{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+  .control-badge{font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue);border-radius:999px;padding:3px 10px}
+  .control-categorias-grid{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+  .control-categoria-titulo{font-size:10px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+  .control-pills{display:flex;flex-wrap:wrap;gap:6px}
+  .control-pill{padding:5px 11px;border-radius:999px;font-size:11px;font-weight:700}
+  .control-enfermedades{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .control-card-obs{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);font-style:italic}
+
+  .control-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.25rem}
+  .control-stat{color:#fff;border-radius:var(--r);padding:1rem 1.2rem}
+  .control-stat .label{font-size:11px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.03em}
+  .control-stat .valor{font-size:26px;font-weight:800;margin-top:4px}
+  .control-categorias-dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .control-categoria-box{border:1.5px solid var(--border);border-radius:var(--r);padding:14px;background:var(--surface)}
+  .control-categoria-box-titulo{font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px}
+  .control-barra{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer}
+  .control-barra-label{width:130px;font-size:11px;font-weight:700;color:var(--text);flex-shrink:0}
+  .control-barra-track{flex:1;border-radius:6px;height:18px;overflow:hidden}
+  .control-barra-fill{height:100%;border-radius:6px}
+  .control-barra-n{width:26px;text-align:right;font-size:12px;font-weight:800;color:var(--text);flex-shrink:0}
   .check-card .cabecera{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
   .check-card .fecha{font-size:11px;color:var(--muted);font-weight:700}
   .check-card .desc{font-size:12px;color:var(--text);margin-bottom:6px;line-height:1.4}
@@ -205,22 +257,10 @@
       <div class="checks-grid" id="tr-grid"></div>
     </section>
 
-    <!-- CONTROL CHECKS -->
+    <!-- CONTROL (Check Túnel / Check Carga — igual que el módulo Control de La Sala) -->
     <section id="pg-checks" class="pg">
-      <div class="filtros">
-        <input id="ck-desde" type="date">
-        <input id="ck-hasta" type="date">
-        <input id="ck-inv" type="text" placeholder="Invernadero (ej. 17)">
-        <input id="ck-partida" type="text" placeholder="Partida (ej. 26X01687)">
-        <select id="ck-tipo">
-          <option value="">Todos los tipos</option>
-          <option value="tunel">Túnel</option>
-          <option value="carga">Carga</option>
-        </select>
-        <button onclick="cargarChecks()"><svg class="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Filtrar</button>
-      </div>
-      <div class="info" id="ck-info"></div>
-      <div class="checks-grid" id="ck-grid"></div>
+      <div id="control-resumen"></div>
+      <div id="control-contenido"></div>
     </section>
 
     <!-- PARTIDAS -->
@@ -308,6 +348,17 @@
       </div>
     </div>
 
+    <!-- Modal listado de partidas (desde el dashboard de Control) -->
+    <div class="modal-overlay" id="control-listado-modal" onclick="if(event.target===this) cerrarListadoControl()">
+      <div class="modal-box">
+        <div class="modal-head">
+          <span id="control-listado-titulo">Partidas</span>
+          <button onclick="cerrarListadoControl()">✕</button>
+        </div>
+        <div class="modal-body" id="control-listado-body"></div>
+      </div>
+    </div>
+
     <!-- SYNC LOG -->
     <section id="pg-sync" class="pg">
       <div class="info">Últimas 50 ejecuciones de la sincronización diaria.</div>
@@ -335,6 +386,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://otydqbqtjyvzbuwwelta.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_U2etfHjlcYgxSXw7XWKO6w_Hw3lEe2U';
+const FIREBASE_DB_URL_FRONTEND = 'https://la-sala-app-default-rtdb.europe-west1.firebasedatabase.app';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 window.supabase = supabase;
@@ -383,7 +435,7 @@ window.showPage = function (nombre) {
   document.querySelectorAll('.pg').forEach(el => el.classList.remove('visible'));
   document.getElementById('pg-' + nombre).classList.add('visible');
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.toggle('active', b.dataset.pg === nombre));
-  if (nombre === 'checks' && !document.getElementById('ck-grid').children.length) cargarChecks();
+  if (nombre === 'checks' && !controlChecksCache) cargarControlModulo();
   if (nombre === 'sync' && !document.getElementById('sync-grid').children.length) cargarSync();
   if (nombre === 'partidas' && !partidasCache) cargarPartidas();
   if (nombre === 'partidas' && !mapaChecksCache) cargarMapaPartidas();
@@ -423,38 +475,293 @@ window.cargarTrabajos = async function () {
     </div>`).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin resultados</div>`;
 };
 
-window.cargarChecks = async function () {
-  const desde = document.getElementById('ck-desde').value;
-  const hasta = document.getElementById('ck-hasta').value;
-  const inv = document.getElementById('ck-inv').value.trim();
-  const partida = document.getElementById('ck-partida').value.trim();
-  const tipo = document.getElementById('ck-tipo').value;
+// ════════════════════════════════════════════════════════════════
+// CONTROL (Check Túnel / Check Carga) — igual que el módulo Control de
+// La Sala: secciones con contador, quincena + día, vista Líneas/Dashboard.
+// Combina lo reciente (todavía solo en Firebase) con lo ya archivado en
+// Supabase (control_checks), para no dejar ningún día sin ver.
+// ════════════════════════════════════════════════════════════════
 
-  let q = supabase.from('control_checks').select('*').order('fecha', { ascending: false }).limit(200);
-  if (desde) q = q.gte('fecha', desde);
-  if (hasta) q = q.lte('fecha', hasta);
-  if (inv) q = q.eq('invernadero', inv);
-  if (partida) q = q.ilike('partida', `%${partida}%`);
-  if (tipo) q = q.eq('tipo_check', tipo);
+const CONTROL_SECCIONES = [
+  { key: 'tunel', label: 'Check Túnel', color: 'linear-gradient(135deg,#5c8df0,#3fc6b0)', conCheck: true },
+  { key: 'carga', label: 'Check Carga', color: 'linear-gradient(135deg,#f5a35c,#f0715c)', conCheck: true },
+  { key: 'invernadero', label: 'Check Invernadero', color: 'linear-gradient(135deg,#1a5c2e,#3fa864)', conCheck: false },
+  { key: 'fechas', label: 'Check Fechas', color: 'linear-gradient(135deg,#7b5cf0,#5c8df0)', conCheck: false },
+  { key: 'productos', label: 'Check Prueba de Productos', color: 'linear-gradient(135deg,#c47f00,#e0a530)', conCheck: false },
+];
 
-  const { data, error } = await q;
-  const info = document.getElementById('ck-info');
-  const grid = document.getElementById('ck-grid');
-  if (error) { info.textContent = 'Error: ' + error.message; grid.innerHTML = ''; return; }
-  info.textContent = `${data.length} resultado(s) (máx. 200)`;
-  grid.innerHTML = data.map(c => `
-    <div class="check-card">
-      <div class="cabecera">
-        <span class="fecha">${c.fecha ?? ''}</span>
-        ${c.tipo_check ? `<span class="tag">${c.tipo_check}</span>` : ''}
-      </div>
-      <div class="desc">${c.cliente_variedad || c.partida || '—'}</div>
-      ${c.observaciones ? `<div class="obs">${c.observaciones}</div>` : ''}
-      <div class="footer-mini">
-        <span>INV ${c.invernadero ?? '—'}</span>
-        <span>${c.partida ?? ''}</span>
-      </div>
-    </div>`).join('') || `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted)">Sin resultados</div>`;
+const CONTROL_CHECK_CATEGORIAS = [
+  { key: 'color', label: 'Color', gradiente: 'linear-gradient(135deg,#7b5cf0,#5c8df0)', tinte: '#efeafd',
+    opciones: [{ key: 'verde', label: 'Verde' }, { key: 'amarillo', label: 'Amarillo' }, { key: 'verdeClaro', label: 'Verde claro' }, { key: 'ok', label: 'OK' }] },
+  { key: 'tamano', label: 'Tamaño', gradiente: 'linear-gradient(135deg,#5c8df0,#3fc6b0)', tinte: '#e8f2fd',
+    opciones: [{ key: 'grande', label: 'Grande' }, { key: 'pequeno', label: 'Pequeño' }, { key: 'ok', label: 'OK' }] },
+  { key: 'sanidad', label: 'Sanidad', gradiente: 'linear-gradient(135deg,#f5a35c,#f0715c)', tinte: '#fdece5',
+    opciones: [{ key: 'ok', label: 'OK' }, { key: 'enferma', label: 'Enferma' }] },
+  { key: 'flores', label: 'Flores', gradiente: 'linear-gradient(135deg,#1a5c2e,#3fa864)', tinte: '#e8f5ea',
+    opciones: [{ key: 'si', label: 'Sí' }, { key: 'no', label: 'No' }] },
+  { key: 'raices', label: 'Raíces', gradiente: 'linear-gradient(135deg,#c47f00,#e0a530)', tinte: '#fbf1e0',
+    opciones: [{ key: 'pocaRaiz', label: 'Poca raíz' }, { key: 'raizVariedad', label: 'Raíz en variedad' }, { key: 'ok', label: 'OK' }] },
+];
+
+const SANIDAD_ENFERMEDADES = [
+  { key: 'hojasManchadas', label: 'Hojas manchadas' }, { key: 'hojasAmarillas', label: 'Hojas amarillas' },
+  { key: 'tuta', label: 'Tuta' }, { key: 'minador', label: 'Minador' }, { key: 'pulgon', label: 'Pulgón' },
+  { key: 'oidio', label: 'Oídio' }, { key: 'alternaria', label: 'Alternaria' }, { key: 'botritis', label: 'Botritis' },
+];
+
+const CONTROL_INV_SALA1 = ['0A', '0B', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B'];
+const CONTROL_INV_SALA2 = ['10A', '10B', '11A', '11B', '12', '15', '16', '17', '18', '19', '20', '21', '22'];
+
+let controlChecksCache = null;
+let controlSeccion = null;
+let controlQuincenaOffset = null;
+let controlDiaSel = null;
+let controlVista = 'lineas';
+let controlFiltroEstado = 'todos';
+let controlInvFiltro = '';
+
+function controlLineaCompletada(c) {
+  return CONTROL_CHECK_CATEGORIAS.every(cat => c[cat.key] && Object.values(c[cat.key]).some(v => v));
+}
+
+function calleTramoDeTunel(c) {
+  if (!c.invId) return null;
+  const tramos = (c.tramos && c.tramos.length) ? c.tramos : [{ desde: c.calleDesde, hasta: c.calleHasta }];
+  if (tramos[0].desde == null) return null;
+  const desde = Math.min(...tramos.map(t => t.desde));
+  const hasta = Math.max(...tramos.map(t => t.hasta ?? t.desde));
+  const label = tramos.map(t => (t.desde === (t.hasta ?? t.desde)) ? `C/${t.desde}` : `C/${t.desde}-${t.hasta}`).join(', ');
+  return { invId: c.invId, desde, hasta, label };
+}
+
+function calleTramoDeCarga(c) {
+  const m = /^(\d{1,2})-(\d{1,3})-(\d{1,3})$/.exec(c.invernadero || '');
+  if (!m) return null;
+  const invNum = m[1].replace(/^0+(?=\d)/, '');
+  const desde = Math.min(parseInt(m[2], 10), parseInt(m[3], 10));
+  const hasta = Math.max(parseInt(m[2], 10), parseInt(m[3], 10));
+  return { invId: invNum, desde, hasta, label: desde === hasta ? `${desde}` : `${desde}-${hasta}` };
+}
+
+window.cargarControlModulo = async function () {
+  document.getElementById('control-resumen').innerHTML = '<div class="info">Cargando...</div>';
+  try {
+    let liveArr = [];
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL_FRONTEND}/lasala-control-checks-v1.json`);
+      const raw = await res.text();
+      if (raw !== 'null') {
+        const inner = JSON.parse(raw);
+        liveArr = typeof inner === 'string' ? JSON.parse(inner) : inner;
+      }
+    } catch (e) { /* si Firebase no responde, seguimos solo con lo archivado */ }
+
+    const { data: archivado } = await supabase.from('control_checks').select('datos_raw').limit(3000);
+
+    const porId = new Map();
+    (archivado || []).forEach(r => { if (r.datos_raw && r.datos_raw.id) porId.set(r.datos_raw.id, r.datos_raw); });
+    (liveArr || []).forEach(c => { if (c && c.id) porId.set(c.id, c); });
+    controlChecksCache = Array.from(porId.values());
+  } catch (e) {
+    document.getElementById('control-resumen').innerHTML = `<div class="info">Error: ${e.message}</div>`;
+    return;
+  }
+  controlSeccion = null;
+  renderControlModulo();
+};
+
+function renderControlModulo() {
+  const cont = document.getElementById('control-resumen');
+  cont.innerHTML = `<div class="control-secciones">${CONTROL_SECCIONES.map(s => {
+    const n = s.conCheck ? controlChecksCache.filter(c => c.tipo === s.key).length : null;
+    return `<div class="control-seccion-card ${controlSeccion === s.key ? 'activa' : ''}" style="background:${s.color}" onclick="seleccionarControlSeccion('${s.key}')">
+      <div class="titulo">${s.label}</div>
+      ${n != null ? `<div class="numero">${n}</div><div class="sub">línea${n === 1 ? '' : 's'} registrada${n === 1 ? '' : 's'}</div>` : `<div class="sub" style="font-style:italic">Próximamente</div>`}
+    </div>`;
+  }).join('')}</div>`;
+
+  document.getElementById('control-contenido').innerHTML = controlSeccion
+    ? renderControlSeccion(CONTROL_SECCIONES.find(s => s.key === controlSeccion))
+    : '';
+}
+
+window.seleccionarControlSeccion = function (key) {
+  controlSeccion = controlSeccion === key ? null : key;
+  if (controlSeccion) {
+    if (controlQuincenaOffset === null) controlQuincenaOffset = quincenaOffsetActual();
+    if (controlDiaSel === null) controlDiaSel = diaDeHoy();
+    controlFiltroEstado = 'todos';
+    controlInvFiltro = '';
+  }
+  renderControlModulo();
+};
+
+window.cambiarControlQuincena = function (delta) {
+  controlQuincenaOffset = Math.max(0, controlQuincenaOffset + delta);
+  controlDiaSel = null;
+  renderControlModulo();
+};
+
+window.cambiarControlDia = function (dia) {
+  controlDiaSel = Number(dia);
+  renderControlModulo();
+};
+
+window.cambiarControlVista = function (v) { controlVista = v; renderControlModulo(); };
+window.cambiarControlFiltroEstado = function (v) { controlFiltroEstado = v; renderControlModulo(); };
+window.cambiarControlInvFiltro = function (v) { controlInvFiltro = v; renderControlModulo(); };
+
+function renderControlSeccion(seccion) {
+  if (!seccion.conCheck) {
+    return `<div class="info" style="font-style:italic;padding:2rem;text-align:center">Próximamente — esta comprobación todavía no existe en La Sala.</div>`;
+  }
+  const diasQ = quincenaDiasDe(controlQuincenaOffset);
+  if (controlDiaSel == null || !diasQ.includes(controlDiaSel)) controlDiaSel = diasQ[0];
+  const listaDia = controlChecksCache.filter(c => c.tipo === seccion.key && c.dia === controlDiaSel);
+
+  const diaBotonesHTML = diasQ.map(d => `
+    <button class="control-dia-btn ${d === controlDiaSel ? 'activo' : ''}" style="${d === controlDiaSel ? `background:${seccion.color}` : ''}" onclick="cambiarControlDia(${d})">
+      ${formatoFechaCorta(diaAFecha(d))}<br><span>${diaSemanaDe(d).slice(0, 3)}</span>
+    </button>`).join('');
+
+  return `
+    <div class="control-quincena-nav">
+      <button onclick="cambiarControlQuincena(-1)" ${controlQuincenaOffset <= 0 ? 'disabled' : ''}>‹</button>
+      <span>Quincena ${controlQuincenaOffset + 1} · ${formatoFechaCorta(diaAFecha(diasQ[0]))} – ${formatoFechaCorta(diaAFecha(diasQ[13]))}</span>
+      <button onclick="cambiarControlQuincena(1)">›</button>
+    </div>
+    <div class="control-dias-row">${diaBotonesHTML}</div>
+    <div class="control-vista-toggle">
+      <button class="${controlVista === 'lineas' ? 'activo' : ''}" style="${controlVista === 'lineas' ? `background:${seccion.color}` : ''}" onclick="cambiarControlVista('lineas')">📋 Líneas</button>
+      <button class="${controlVista === 'dashboard' ? 'activo' : ''}" style="${controlVista === 'dashboard' ? `background:${seccion.color}` : ''}" onclick="cambiarControlVista('dashboard')">📊 Dashboard del día</button>
+    </div>
+    ${controlVista === 'dashboard' ? renderControlDashboard(seccion, listaDia) : renderControlLineas(seccion, listaDia)}
+  `;
+}
+
+function renderControlLineas(seccion, listaDia) {
+  const numCompletados = listaDia.filter(controlLineaCompletada).length;
+  const numPendientes = listaDia.length - numCompletados;
+  let lista = controlFiltroEstado === 'completados' ? listaDia.filter(controlLineaCompletada)
+    : controlFiltroEstado === 'pendientes' ? listaDia.filter(c => !controlLineaCompletada(c))
+    : listaDia;
+
+  if (seccion.key === 'carga' && controlInvFiltro) {
+    lista = lista.map(c => ({ c, t: calleTramoDeCarga(c) })).filter(x => x.t && x.t.invId === controlInvFiltro).sort((a, b) => a.t.desde - b.t.desde).map(x => x.c);
+  } else if (seccion.key === 'tunel' && controlInvFiltro) {
+    lista = lista.map(c => ({ c, t: calleTramoDeTunel(c) })).filter(x => x.t && x.t.invId === controlInvFiltro).sort((a, b) => a.t.desde - b.t.desde).map(x => x.c);
+  }
+
+  const filtroBtn = (v, label, n) => `<button class="control-filtro-btn ${controlFiltroEstado === v ? 'activo' : ''}" style="${controlFiltroEstado === v ? `background:${seccion.color}` : ''}" onclick="cambiarControlFiltroEstado('${v}')">${label} (${n})</button>`;
+
+  const filtroInvHTML = (seccion.key === 'carga' || seccion.key === 'tunel') ? `
+    <select onchange="cambiarControlInvFiltro(this.value)" style="margin-bottom:1rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:12px">
+      <option value="">Todos los invernaderos</option>
+      <optgroup label="Sala 1">${CONTROL_INV_SALA1.map(id => `<option value="${id}" ${controlInvFiltro === id ? 'selected' : ''}>INV ${id}</option>`).join('')}</optgroup>
+      <optgroup label="Sala 2">${CONTROL_INV_SALA2.map(id => `<option value="${id}" ${controlInvFiltro === id ? 'selected' : ''}>INV ${id}</option>`).join('')}</optgroup>
+    </select>` : '';
+
+  return `
+    <div class="control-filtros-row">
+      ${filtroBtn('todos', 'Todos', listaDia.length)}
+      ${filtroBtn('completados', '✓ Completados', numCompletados)}
+      ${filtroBtn('pendientes', '○ Pendientes', numPendientes)}
+    </div>
+    ${filtroInvHTML}
+    ${listaDia.length === 0 ? `<div class="info" style="text-align:center;padding:2rem;font-style:italic">Sin líneas para este día todavía.</div>`
+      : lista.length === 0 ? `<div class="info" style="text-align:center;padding:2rem;font-style:italic">No hay líneas que coincidan con el filtro.</div>`
+      : `<div class="control-lineas-lista">${lista.map(c => renderControlCard(c, seccion)).join('')}</div>`}
+  `;
+}
+
+function renderControlCard(c, seccion) {
+  let calleReal = 'Sin asignar';
+  if (seccion.key === 'carga') {
+    const t = calleTramoDeCarga(c);
+    if (t) calleReal = `INV ${t.invId} — C/${t.label}`;
+  } else {
+    const t = calleTramoDeTunel(c);
+    if (t) calleReal = `INV ${t.invId} — ${t.label}`;
+  }
+
+  const categoriasHTML = CONTROL_CHECK_CATEGORIAS.map(cat => {
+    const opcionesHTML = cat.opciones.map(o => {
+      const activo = !!(c[cat.key] && c[cat.key][o.key]);
+      return `<span class="control-pill" style="background:${activo ? cat.gradiente : cat.tinte};color:${activo ? '#fff' : 'var(--text)'}">${activo ? '✓ ' : ''}${o.label}</span>`;
+    }).join('');
+    const enfermedadesHTML = (cat.key === 'sanidad' && c.sanidad && c.sanidad.enferma) ? `
+      <div class="control-enfermedades">${SANIDAD_ENFERMEDADES.filter(e => c.sanidadEnfermedades && c.sanidadEnfermedades[e.key]).map(e => `<span class="control-pill" style="background:#c62828;color:#fff">${e.label}</span>`).join('')}</div>` : '';
+    return `<div><div class="control-categoria-titulo">${cat.label}</div><div class="control-pills">${opcionesHTML}</div>${enfermedadesHTML}</div>`;
+  }).join('');
+
+  return `<div class="control-card">
+    <div class="control-card-cliente">${c.clienteVariedad || '—'}</div>
+    <div class="control-card-partida">${c.partida || '— Sin partida —'}</div>
+    <div class="control-card-badges">
+      <span class="control-badge">Nº bandejas: ${c.numBandejas ?? '—'}</span>
+      <span class="control-badge">Calle real: ${calleReal}</span>
+    </div>
+    <div class="control-categorias-grid">${categoriasHTML}</div>
+    ${c.observaciones ? `<div class="control-card-obs">${c.observaciones}</div>` : ''}
+  </div>`;
+}
+
+window.controlDashboardListas = [];
+
+function renderControlDashboard(seccion, listaDia) {
+  if (!listaDia.length) return `<div class="info" style="text-align:center;padding:2rem;font-style:italic">Sin líneas para este día todavía.</div>`;
+  const total = listaDia.length;
+  const completados = listaDia.filter(controlLineaCompletada).length;
+  const pendientes = total - completados;
+  const pct = Math.round((completados / total) * 100);
+  const totalBandejas = listaDia.reduce((s, c) => s + (parseFloat(c.numBandejas) || 0), 0);
+
+  const statCard = (label, valor, color) => `<div class="control-stat" style="background:${color}"><div class="label">${label}</div><div class="valor">${valor}</div></div>`;
+  const statsHTML = `<div class="control-stats-grid">
+    ${statCard('Total líneas', total, 'linear-gradient(135deg,#1558a0,#2a72c4)')}
+    ${statCard('Completados', `${completados} (${pct}%)`, 'linear-gradient(135deg,#1a5c2e,#3fa864)')}
+    ${statCard('Pendientes', pendientes, 'linear-gradient(135deg,#c47f00,#e0a530)')}
+    ${statCard('Nº bandejas', Math.round(totalBandejas), 'linear-gradient(135deg,#7b5cf0,#5c8df0)')}
+  </div>`;
+
+  window.controlDashboardListas = [];
+  const barra = (label, n, max, gradiente, tinte, lineas) => {
+    const idx = window.controlDashboardListas.length;
+    window.controlDashboardListas.push({ titulo: label, lineas });
+    return `<div class="control-barra" onclick="mostrarListadoControl(${idx})">
+      <div class="control-barra-label">${label}</div>
+      <div class="control-barra-track" style="background:${tinte}"><div class="control-barra-fill" style="width:${Math.round((n / max) * 100)}%;background:${gradiente}"></div></div>
+      <div class="control-barra-n">${n}</div>
+    </div>`;
+  };
+
+  const categoriasHTML = CONTROL_CHECK_CATEGORIAS.map(cat => {
+    const conteos = cat.opciones.map(o => ({ label: o.label, n: listaDia.filter(c => c[cat.key] && c[cat.key][o.key]).length, lineas: listaDia.filter(c => c[cat.key] && c[cat.key][o.key]) }));
+    const max = Math.max(1, ...conteos.map(x => x.n));
+    return `<div class="control-categoria-box"><div class="control-categoria-box-titulo">${cat.label}</div>${conteos.map(x => barra(`${cat.label} — ${x.label}`, x.n, max, cat.gradiente, cat.tinte, x.lineas)).join('')}</div>`;
+  }).join('');
+
+  const conEnferma = listaDia.filter(c => c.sanidad && c.sanidad.enferma);
+  const conteosEnf = SANIDAD_ENFERMEDADES.map(e => ({ label: e.label, n: conEnferma.filter(c => c.sanidadEnfermedades && c.sanidadEnfermedades[e.key]).length, lineas: conEnferma.filter(c => c.sanidadEnfermedades && c.sanidadEnfermedades[e.key]) })).filter(x => x.n > 0);
+  const enfermedadesHTML = conteosEnf.length ? (() => {
+    const max = Math.max(1, ...conteosEnf.map(x => x.n));
+    return `<div class="control-categoria-box"><div class="control-categoria-box-titulo" style="color:#c62828">Enfermedades (${conEnferma.length})</div>${conteosEnf.map(x => barra(x.label, x.n, max, 'linear-gradient(135deg,#c62828,#e57373)', '#fdece5', x.lineas)).join('')}</div>`;
+  })() : '';
+
+  return statsHTML + `<div class="control-categorias-dashboard">${categoriasHTML}${enfermedadesHTML}</div>`;
+}
+
+window.mostrarListadoControl = function (idx) {
+  const { titulo, lineas } = window.controlDashboardListas[idx];
+  document.getElementById('control-listado-titulo').textContent = `${titulo} (${lineas.length})`;
+  document.getElementById('control-listado-body').innerHTML = lineas.length === 0
+    ? `<div class="info" style="text-align:center;padding:1.5rem;font-style:italic">Sin partidas.</div>`
+    : `<table><thead><tr><th>Partida</th><th>Cliente y variedad</th></tr></thead><tbody>${lineas.map(c => `<tr><td style="font-weight:800;color:var(--blue)">${c.partida || '—'}</td><td>${c.clienteVariedad || '—'}</td></tr>`).join('')}</tbody></table>`;
+  document.getElementById('control-listado-modal').classList.add('visible');
+};
+
+window.cerrarListadoControl = function () {
+  document.getElementById('control-listado-modal').classList.remove('visible');
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -883,6 +1190,12 @@ function quincenaOffsetActual() {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   const diffDias = Math.round((hoy - RIEGO_ANCHOR_DATE) / 86400000);
   return Math.max(0, Math.floor(diffDias / 14));
+}
+
+function diaDeHoy() {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const diffDias = Math.round((hoy - RIEGO_ANCHOR_DATE) / 86400000);
+  return 15 + diffDias;
 }
 
 function quincenaDiasDe(offset) {
