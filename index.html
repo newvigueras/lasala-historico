@@ -520,8 +520,25 @@ function diaAFecha(dia) {
 }
 
 function formatoFechaCorta(fecha) {
-  return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+  // Igual que riegoDiaLabelCorto en La Sala: sin ceros a la izquierda en el
+  // día, y sin el punto final que añade el navegador tras el mes abreviado.
+  return fecha.getDate() + ' ' + fecha.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
 }
+
+// Igual que DIAS_SEMANA / riegoDiaSemana en La Sala.
+const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+function diaSemanaDe(dia) {
+  return DIAS_SEMANA[(diaAFecha(dia).getDay() + 6) % 7];
+}
+
+// Cada quincena empieza en lunes (14 días = 2 semanas exactas), así que el
+// resaltado especial de Riego cae siempre en las mismas posiciones dentro de
+// la quincena: sáb/dom de la 1ª semana y lunes de la 2ª — igual que en La Sala.
+const RIEGO_HIGHLIGHT_POS = {
+  5: { bg: '#cce0ff', label: '#1558a0' }, // Sábado (semana 1)
+  6: { bg: '#ffd6e8', label: '#c2185b' }, // Domingo (semana 1)
+  7: { bg: '#ccf0d8', label: '#1b5e20' }, // Lunes (semana 2)
+};
 
 function seguimientoDe(datosGrid, p) {
   const inv = p.inv;
@@ -700,10 +717,11 @@ window.renderGrid = function (tipo) {
 
   const { dia: claseDia, hdr: claseHdr, celda: claseCelda } = GRID_ESTILOS[tipo];
 
-  const hdr = `<tr><td class="${claseDia} ${claseHdr}"></td>${calles.map(c => `<td class="${claseHdr}">${c}</td>`).join('')}</tr>`;
+  const hdr = `<tr><td class="${claseDia} ${claseHdr}"></td>${calles.map(c => `<td class="${claseHdr}">${c}</td>`).join('')}<td class="${claseHdr}" style="font-size:9px">Día semana</td></tr>`;
 
+  function rawDe(diaData, calle) { return diaData[calle]; }
   function textoDe(diaData, calle) {
-    const val = diaData[calle];
+    const val = rawDe(diaData, calle);
     return typeof val === 'string' ? val : (val?.texto ?? '');
   }
 
@@ -718,13 +736,29 @@ window.renderGrid = function (tipo) {
       if (texto) {
         let fin = i + 1;
         while (fin < calles.length && textoDe(diaData, calles[fin]) === texto) fin++;
-        brackets.push({ start: i, span: fin - i, texto });
+        brackets.push({ start: i, span: fin - i, texto, raw: rawDe(diaData, calles[i]) });
         i = fin;
       } else {
         i++;
       }
     }
     return brackets;
+  }
+
+  // Color de fondo de la celda igual que en La Sala:
+  //  - Fitosanitarios: "primer día de tratamiento" se pinta de morado.
+  //  - Especificos: el tipo (MONTONES / PASE RÁPIDO + MONTONES) cambia el color.
+  function colorCelda(br) {
+    if (tipo === 'fito') {
+      const esPrimerDia = br.raw && typeof br.raw === 'object' && br.raw.primerDia;
+      return esPrimerDia ? '#e6d9f5' : '#fdf0e8';
+    }
+    if (tipo === 'especificos') {
+      if (br.texto.includes('PASE RÁPIDO + MONTONES')) return '#ffe0b2';
+      if (br.texto.includes('MONTONES')) return '#e1d3f5';
+      return '#eaf7e0';
+    }
+    return null; // riego: se decide en el propio bucle de filas (resaltado de fin de semana)
   }
 
   // La Sala organiza el riego y los tratamientos por quincenas reales de
@@ -734,10 +768,10 @@ window.renderGrid = function (tipo) {
     const indice = Math.floor((dia - 1) / 14);
     const diaDesde = indice * 14 + 1;
     const diaHasta = diaDesde + 13;
-    return { indice, desde: diaAFecha(diaDesde), hasta: diaAFecha(diaHasta) };
+    return { indice, desde: diaAFecha(diaDesde), hasta: diaAFecha(diaHasta), posEnBloque: dia - diaDesde };
   }
 
-  const nCols = calles.length + 1;
+  const nCols = calles.length + 2;
   let bloqueActual = null;
   const filas = dias.map(dia => {
     const b = bloqueQuincenalDe(dia);
@@ -748,6 +782,11 @@ window.renderGrid = function (tipo) {
       cabeceraQuincena = `<tr><td colspan="${nCols}" style="background:${colorBanda};color:#fff;font-weight:800;font-size:11px;text-align:left;padding:5px 8px;height:auto">Quincena — ${formatoFechaCorta(b.desde)} a ${formatoFechaCorta(b.hasta)}</td></tr>`;
     }
 
+    // Resaltado de fin de semana, solo en Riego: sábado/domingo de la 1ª
+    // semana y lunes de la 2ª, igual que RIEGO_HIGHLIGHT_POS en La Sala.
+    const resaltado = tipo === 'riego' ? RIEGO_HIGHLIGHT_POS[b.posEnBloque] : null;
+    const semana = diaSemanaDe(dia);
+
     const diaData = datosInv[dia] || {};
     const brackets = detectarCorchetes(diaData);
     let celdas = '';
@@ -756,14 +795,19 @@ window.renderGrid = function (tipo) {
       const br = brackets.find(b => b.start === i);
       if (br) {
         const escapado = br.texto.replace(/"/g, '&quot;');
-        celdas += `<td class="${claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px">${br.texto}</td>`;
+        const bg = resaltado ? resaltado.bg : colorCelda(br);
+        const estiloBg = bg ? `background:${bg}` : '';
+        celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px;${estiloBg}">${br.texto}</td>`;
         i += br.span;
       } else {
-        celdas += `<td class="celda-vacia">·</td>`;
+        const estiloBg = resaltado ? `style="background:${resaltado.bg}"` : '';
+        celdas += `<td class="celda-vacia" ${estiloBg}>·</td>`;
         i++;
       }
     }
-    return `${cabeceraQuincena}<tr><td class="${claseDia}" title="día interno ${dia}">${formatoFechaCorta(diaAFecha(dia))}</td>${celdas}</tr>`;
+    const estiloDia = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : '';
+    const estiloSemana = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : 'style="font-size:9px;color:var(--muted)"';
+    return `${cabeceraQuincena}<tr><td class="${claseDia}" title="día interno ${dia}" ${estiloDia}>${formatoFechaCorta(diaAFecha(dia))}</td>${celdas}<td ${estiloSemana}>${semana}</td></tr>`;
   }).join('');
 
   tabla.innerHTML = hdr + filas;
