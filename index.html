@@ -119,8 +119,8 @@
   .grid-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
   .grid-wrap table{border-collapse:collapse;font-size:11px;table-layout:fixed;border:none}
   .grid-wrap td{border:1px solid var(--border);text-align:center;padding:0;height:28px}
-  .grid-wrap .dia-riego{width:34px;min-width:34px;background:var(--blue-light);color:var(--blue);font-weight:800;position:sticky;left:0}
-  .grid-wrap .dia-fito{width:34px;min-width:34px;background:var(--red-light);color:var(--red);font-weight:800;position:sticky;left:0}
+  .grid-wrap .dia-riego{width:58px;min-width:58px;background:var(--blue-light);color:var(--blue);font-weight:800;position:sticky;left:0;font-size:10px}
+  .grid-wrap .dia-fito{width:58px;min-width:58px;background:var(--red-light);color:var(--red);font-weight:800;position:sticky;left:0;font-size:10px}
   .grid-wrap .hdr-riego{background:var(--blue-light);color:var(--text);font-weight:800;position:sticky;top:0}
   .grid-wrap .hdr-fito{background:var(--red-light);color:var(--text);font-weight:800;position:sticky;top:0}
   .grid-wrap .celda-riego{background:#e8f5e0;color:#0a5a0a;font-weight:700;font-size:9px}
@@ -229,7 +229,7 @@
       <div class="info" id="riego-info"></div>
       <div class="seg-box riego" style="max-width:640px">
         <div class="titulo">Aviso</div>
-El número de la izquierda corresponde a una fecha real, mostrado igual que en La Sala y organizado por <b>quincenas de 15 días</b> (se indica con la banda de color antes de cada bloque).
+Cada fila es un día real de calendario, organizado en quincenas de 14 días (lunes a domingo), igual que en La Sala — se indica con la banda de color antes de cada bloque.
       </div>
       <div class="grid-wrap"><table id="riego-tabla"></table></div>
     </section>
@@ -242,7 +242,7 @@ El número de la izquierda corresponde a una fecha real, mostrado igual que en L
       <div class="info" id="fito-info"></div>
       <div class="seg-box fito" style="max-width:640px">
         <div class="titulo">Aviso</div>
-El número de la izquierda corresponde a una fecha real, mostrado igual que en La Sala y organizado por <b>quincenas de 15 días</b> (se indica con la banda de color antes de cada bloque).
+Cada fila es un día real de calendario, organizado en quincenas de 14 días (lunes a domingo), igual que en La Sala — se indica con la banda de color antes de cada bloque.
       </div>
       <div class="grid-wrap"><table id="fito-tabla"></table></div>
     </section>
@@ -462,6 +462,21 @@ function calleAfectadaEnRango(p, calle) {
   return rel >= Math.min(relCi, relCf) && rel <= Math.max(relCi, relCf);
 }
 
+// El número de "día" que usa La Sala en riego/fito/especificos es un contador
+// simple de días de calendario: día 1 = 1 de junio de 2026 (confirmado con
+// Antonio contra la propia app: día 76 = 15 ago, día 93 = 1 sep, día 98 = 6 sep).
+const EPOCA_DIA_1 = new Date(2026, 5, 1);
+
+function diaAFecha(dia) {
+  const f = new Date(EPOCA_DIA_1);
+  f.setDate(f.getDate() + (Number(dia) - 1));
+  return f;
+}
+
+function formatoFechaCorta(fecha) {
+  return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+}
+
 function seguimientoDe(datosGrid, p) {
   const inv = p.inv;
   if (!datosGrid || !datosGrid[inv]) return [];
@@ -539,13 +554,13 @@ function buildPartidaCard(p) {
 
   const riegoHTML = riegoItems.length ? `<div class="seg-box riego">
       <div class="titulo">Riego</div>
-      ${riegoItems.slice(0, 3).map(r => `<div><b>Día ${r.dia}:</b> ${r.texto}</div>`).join('')}
+      ${riegoItems.slice(0, 3).map(r => `<div><b>${formatoFechaCorta(diaAFecha(r.dia))}:</b> ${r.texto}</div>`).join('')}
       ${riegoItems.length > 3 ? `<div style="color:var(--muted)">+${riegoItems.length - 3} más</div>` : ''}
     </div>` : '';
 
   const fitoHTML = fitoItems.length ? `<div class="seg-box fito">
       <div class="titulo">Fitosanitarios</div>
-      ${fitoItems.slice(0, 3).map(f => `<div><b>Día ${f.dia}:</b> ${f.texto}</div>`).join('')}
+      ${fitoItems.slice(0, 3).map(f => `<div><b>${formatoFechaCorta(diaAFecha(f.dia))}:</b> ${f.texto}</div>`).join('')}
       ${fitoItems.length > 3 ? `<div style="color:var(--muted)">+${fitoItems.length - 3} más</div>` : ''}
     </div>` : '';
 
@@ -669,21 +684,24 @@ window.renderGrid = function (tipo) {
     return brackets;
   }
 
-  // La Sala organiza el riego y los tratamientos por quincenas de 15 días
-  // (quincena 1 = días 1-15, quincena 2 = días 16-30, etc.)
-  function quincenaDe(dia) {
-    const q = Math.floor((dia - 1) / 15) + 1;
-    return { q, desde: (q - 1) * 15 + 1, hasta: q * 15 };
+  // La Sala organiza el riego y los tratamientos por quincenas reales de
+  // calendario: bloques de 14 días de lunes a domingo (el día 1 = lunes 1 de
+  // junio de 2026, confirmado con Antonio contra la propia app).
+  function bloqueQuincenalDe(dia) {
+    const indice = Math.floor((dia - 1) / 14);
+    const diaDesde = indice * 14 + 1;
+    const diaHasta = diaDesde + 13;
+    return { indice, desde: diaAFecha(diaDesde), hasta: diaAFecha(diaHasta) };
   }
 
   const nCols = calles.length + 1;
-  let quincenaActual = null;
+  let bloqueActual = null;
   const filas = dias.map(dia => {
-    const q = quincenaDe(dia);
+    const b = bloqueQuincenalDe(dia);
     let cabeceraQuincena = '';
-    if (quincenaActual !== q.q) {
-      quincenaActual = q.q;
-      cabeceraQuincena = `<tr><td colspan="${nCols}" style="background:${tipo === 'riego' ? 'var(--blue)' : 'var(--red)'};color:#fff;font-weight:800;font-size:11px;text-align:left;padding:5px 8px;height:auto">Quincena ${q.q} — días ${q.desde} a ${q.hasta}</td></tr>`;
+    if (bloqueActual !== b.indice) {
+      bloqueActual = b.indice;
+      cabeceraQuincena = `<tr><td colspan="${nCols}" style="background:${tipo === 'riego' ? 'var(--blue)' : 'var(--red)'};color:#fff;font-weight:800;font-size:11px;text-align:left;padding:5px 8px;height:auto">Quincena — ${formatoFechaCorta(b.desde)} a ${formatoFechaCorta(b.hasta)}</td></tr>`;
     }
 
     const diaData = datosInv[dia] || {};
@@ -701,7 +719,7 @@ window.renderGrid = function (tipo) {
         i++;
       }
     }
-    return `${cabeceraQuincena}<tr><td class="${claseDia}">${dia}</td>${celdas}</tr>`;
+    return `${cabeceraQuincena}<tr><td class="${claseDia}" title="día interno ${dia}">${formatoFechaCorta(diaAFecha(dia))}</td>${celdas}</tr>`;
   }).join('');
 
   tabla.innerHTML = hdr + filas;
