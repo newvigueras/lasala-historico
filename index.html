@@ -607,6 +607,27 @@ let conteoTutaQuincenaOffset = null;
 let conteoTutaDiaSel = null;
 let conteoTutaVista = 'datos';
 
+// Check Invernadero: lista plana de líneas (partida/variedad/calle/bandejas),
+// sin días ni categorías de check — no comparte datos con Check Túnel/Carga.
+let controlInvernaderoCache = null;
+let controlInvernaderoFiltroVariedad = '';
+let controlInvernaderoFiltroPartida = '';
+let controlInvernaderoTotalMostrado = null;
+
+function controlInvernaderoLineasFiltradas() {
+  const v = controlInvernaderoFiltroVariedad.trim().toUpperCase();
+  const p = controlInvernaderoFiltroPartida.trim().toUpperCase();
+  return (controlInvernaderoCache || []).filter(l =>
+    (!v || String(l.variedad || '').toUpperCase().includes(v)) &&
+    (!p || String(l.partida || '').toUpperCase().includes(p)));
+}
+// "A tresbolillo" cuenta la mitad de una bandeja normal al sumar el total —
+// igual que bandejasEquivalentes en La Sala.
+function bandejasEquivalentes(l) {
+  const n = parseFloat(l.bandejas) || 0;
+  return l.tresbolillo ? n / 2 : n;
+}
+
 // El conteo de Tuta solo se hace los jueves de cada semana, igual que en La
 // Sala (a petición de Paula, no tiene sentido mostrarlo el resto de días).
 function esJuevesConteoTuta(dia) {
@@ -662,6 +683,13 @@ window.cargarControlModulo = async function () {
     const { data: archivado } = await supabase.from('control_checks').select('datos_raw').limit(3000);
     const { data: archivadoTuta } = await supabase.from('grid_historico').select('dia, invernadero, dato_raw').eq('dominio', 'conteo_tuta');
 
+    try {
+      const snapInv = await fetchSnapshot('control_invernadero');
+      controlInvernaderoCache = snapInv.datos_raw || [];
+    } catch (e) {
+      controlInvernaderoCache = []; // todavía no hay ningún snapshot guardado
+    }
+
     const porId = new Map();
     (archivado || []).forEach(r => { if (r.datos_raw && r.datos_raw.id) porId.set(r.datos_raw.id, r.datos_raw); });
     (liveArr || []).forEach(c => { if (c && c.id) porId.set(c.id, c); });
@@ -693,7 +721,12 @@ window.cargarControlModulo = async function () {
 function renderControlModulo() {
   const cont = document.getElementById('control-resumen');
   cont.innerHTML = `<div class="control-secciones">${CONTROL_SECCIONES.map(s => {
-    const n = s.conCheck ? controlChecksCache.filter(c => c.tipo === s.key).length : null;
+    // Check Invernadero cuenta como línea registrada igual que Túnel/Carga
+    // (aunque no sea un "check" con categorías) — para que el resumen no
+    // diga "Próximamente" de un dato que, al entrar, sí existe.
+    const n = s.conCheck ? controlChecksCache.filter(c => c.tipo === s.key).length
+      : s.key === 'invernadero' ? (controlInvernaderoCache || []).length
+      : null;
     return `<div class="control-seccion-card ${controlSeccion === s.key ? 'activa' : ''}" style="background:${s.color}" onclick="seleccionarControlSeccion('${s.key}')">
       <div class="titulo">${s.label}</div>
       ${n != null ? `<div class="numero">${n}</div><div class="sub">línea${n === 1 ? '' : 's'} registrada${n === 1 ? '' : 's'}</div>`
@@ -743,6 +776,49 @@ window.cambiarConteoTutaDia = function (dia) {
   renderControlModulo();
 };
 window.cambiarConteoTutaVista = function (v) { conteoTutaVista = v; renderControlModulo(); };
+
+window.cambiarControlInvernaderoFiltro = function (campo, valor) {
+  if (campo === 'variedad') controlInvernaderoFiltroVariedad = valor;
+  else controlInvernaderoFiltroPartida = valor;
+  controlInvernaderoTotalMostrado = null;
+  renderControlModulo();
+};
+window.calcularControlInvernaderoTotal = function () {
+  const filtradas = controlInvernaderoLineasFiltradas();
+  controlInvernaderoTotalMostrado = filtradas.reduce((sum, l) => sum + bandejasEquivalentes(l), 0);
+  renderControlModulo();
+};
+
+function renderControlInvernaderoSeccion() {
+  const filtradas = controlInvernaderoLineasFiltradas();
+  const tarjetas = filtradas.map(l => `
+    <div style="border-radius:10px 10px 4px 4px;padding:10px 14px;background:linear-gradient(135deg,#1a5c2e,#3fa864);color:#fff">
+      <div style="font-size:14px;font-weight:800">${escapar(l.partida) || '—'}</div>
+      <div style="font-size:12px;font-weight:600;opacity:.95;margin-top:2px">${escapar(l.variedad) || '—'}</div>
+      <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;font-weight:700;opacity:.9;flex-wrap:wrap">
+        <span>📍 Calle ${escapar(l.calle) || '—'}</span>
+        <span>📦 ${escapar(l.bandejas) || 0} bandejas${l.tresbolillo ? ` (= ${bandejasEquivalentes(l)})` : ''}</span>
+      </div>
+      ${l.tresbolillo ? `<div style="margin-top:8px;display:inline-block;padding:5px 11px;font-size:10.5px;font-weight:800;border-radius:6px;border:1.5px solid rgba(255,255,255,.5);background:#fff;color:#1a5c2e">✓ ⚿ Tresbolillo</div>` : ''}
+    </div>`).join('');
+
+  return `
+    <div class="control-filtros-row" style="align-items:flex-end;background:#f2f4f0;border-radius:10px;padding:10px 12px">
+      <div>
+        <label style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Filtrar por variedad</label>
+        <input type="text" value="${escapar(controlInvernaderoFiltroVariedad)}" oninput="cambiarControlInvernaderoFiltro('variedad',this.value)" style="display:block;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;margin-top:3px;min-width:150px">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Filtrar por nº partida</label>
+        <input type="text" value="${escapar(controlInvernaderoFiltroPartida)}" oninput="cambiarControlInvernaderoFiltro('partida',this.value)" style="display:block;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;margin-top:3px;min-width:150px">
+      </div>
+      <button onclick="calcularControlInvernaderoTotal()" style="padding:8px 16px;font-size:12px;font-weight:800;background:#0f5c4a;color:#fff;border:none;border-radius:7px;cursor:pointer;height:34px">Total bandejas</button>
+      ${controlInvernaderoTotalMostrado != null ? `<div style="font-size:14px;font-weight:800;color:#0f5c4a;display:flex;align-items:center">= ${controlInvernaderoTotalMostrado} bandejas (${filtradas.length} línea${filtradas.length === 1 ? '' : 's'})</div>` : ''}
+    </div>
+    ${filtradas.length === 0
+      ? `<div style="text-align:center;padding:2.5rem;color:var(--muted);font-style:italic;font-size:13px">${(controlInvernaderoCache || []).length === 0 ? 'Sin líneas todavía.' : 'Ninguna línea coincide con el filtro.'}</div>`
+      : `<div class="control-categorias-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${tarjetas}</div>`}`;
+}
 
 function renderConteoTutaSeccion(seccion) {
   if (conteoTutaQuincenaOffset === null) conteoTutaQuincenaOffset = quincenaOffsetActual();
@@ -847,6 +923,7 @@ function renderConteoTutaDashboard(seccion) {
 
 function renderControlSeccion(seccion) {
   if (seccion.tabla) return renderConteoTutaSeccion(seccion);
+  if (seccion.key === 'invernadero') return renderControlInvernaderoSeccion();
   if (!seccion.conCheck) {
     return `<div class="info" style="font-style:italic;padding:2rem;text-align:center">Próximamente — esta comprobación todavía no existe en La Sala.</div>`;
   }
