@@ -1688,6 +1688,7 @@ window.renderGrid = function (tipo) {
   // Igual que en La Sala: solo Riego/Plaguicidas envuelven el texto entre
   // corchetes de color (Corchete = rango de calles); Específicos no.
   const colorCorchete = { riego: '#0a7a0a', fito: '#a32020' }[tipo];
+  const colorTextoCelda = { riego: '#0a5a0a', fito: '#7a1a1a' }[tipo];
 
   function rawDe(diaData, calle) { return diaData[calle]; }
   function textoDe(diaData, calle) {
@@ -1758,10 +1759,21 @@ window.renderGrid = function (tipo) {
           const escapado = br.texto.replace(/"/g, '&quot;');
           const bg = resaltado ? resaltado.bg : colorCelda(br);
           const estiloBg = bg ? `background:${bg}` : '';
+          // Igual que la celda de solo-lectura de Riego en La Sala: los
+          // corchetes van FUERA del bloque de texto que envuelve línea, en un
+          // flex con el "[" anclado arriba (align-self:flex-start) y el "]"
+          // anclado abajo (align-self:flex-end) — así quedan siempre pegados
+          // a los bordes de la celda pase lo que pase el texto a 1 o varias
+          // líneas, en vez de moverse con el texto (arreglo pedido por Paula
+          // el 2026-09-04: "el símbolo [ no está bien situado").
           const contenido = colorCorchete
-            ? `<span style="color:${colorCorchete};font-weight:900">[ </span>${escapar(br.texto)}<span style="color:${colorCorchete};font-weight:900"> ]</span>`
+            ? `<div style="display:flex;align-items:center;height:100%">` +
+              `<span style="font-size:9px;font-weight:900;color:${colorCorchete};flex-shrink:0;align-self:flex-start">[</span>` +
+              `<span style="flex:1;font-size:9px;font-weight:700;color:${colorTextoCelda};white-space:normal;word-break:break-word;line-height:1.2;text-align:center;min-width:0">${escapar(br.texto)}</span>` +
+              `<span style="font-size:9px;font-weight:900;color:${colorCorchete};flex-shrink:0;align-self:flex-end">]</span>` +
+              `</div>`
             : escapar(br.texto);
-          celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="white-space:normal;word-break:break-word;padding:2px 4px;${estiloBg}">${contenido}</td>`;
+          celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="padding:2px 4px;vertical-align:middle;${estiloBg}">${contenido}</td>`;
           i += br.span;
         } else {
           const estiloBg = resaltado ? `style="background:${resaltado.bg}"` : '';
