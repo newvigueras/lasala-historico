@@ -1685,10 +1685,11 @@ window.renderGrid = function (tipo) {
   const navClase = { riego: 'mod-riego', fito: 'mod-fito', especificos: '' }[tipo];
   const nav = document.querySelector(`#pg-${tipo} .quincena-nav`);
   if (nav && navClase) nav.classList.add(navClase);
-  // Igual que en La Sala: solo Riego/Plaguicidas envuelven el texto entre
-  // corchetes de color (Corchete = rango de calles); Específicos no.
-  const colorCorchete = { riego: '#0a7a0a', fito: '#a32020' }[tipo];
-  const colorTextoCelda = { riego: '#0a5a0a', fito: '#7a1a1a' }[tipo];
+  // Igual que en La Sala: Riego, Plaguicidas Y Específicos envuelven el
+  // texto entre corchetes de color (Corchete = rango de calles) — los tres
+  // usan exactamente el mismo patrón visual, cada uno con su color.
+  const colorCorchete = { riego: '#0a7a0a', fito: '#a32020', especificos: '#2e7d32' }[tipo];
+  const colorTextoCelda = { riego: '#0a5a0a', fito: '#7a1a1a', especificos: '#1b5e20' }[tipo];
 
   function rawDe(diaData, calle) { return diaData[calle]; }
   function textoDe(diaData, calle) {
