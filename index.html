@@ -121,6 +121,7 @@
   .quincena-nav{display:flex;align-items:center;gap:8px;background:var(--verde);color:#fff;border-radius:var(--rs);padding:6px 10px}
   .quincena-nav.mod-riego{background:linear-gradient(120deg,#124a86 0%,#1558a0 55%,#2a72c4 100%)}
   .quincena-nav.mod-fito{background:#a32020}
+  .quincena-nav.mod-especificos{background:#2e7d32}
   .quincena-nav button{width:24px;height:24px;border-radius:5px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer;font-size:14px;line-height:1}
   .quincena-nav button:disabled{opacity:.35;cursor:default}
   .quincena-nav span{font-size:12px;font-weight:700;white-space:nowrap}
@@ -129,14 +130,14 @@
   .grid-wrap table{border-collapse:collapse;font-size:11px;table-layout:fixed;border:none}
   .grid-wrap td{border:1px solid var(--border);text-align:center;padding:0;height:28px}
   .grid-wrap .dia-riego{width:58px;min-width:58px;background:#dce8f5;color:#1558a0;font-weight:800;position:sticky;left:0;font-size:10px;border-color:#9ab8d8}
-  .grid-wrap .dia-fito{width:58px;min-width:58px;background:var(--red-light);color:var(--red);font-weight:800;position:sticky;left:0;font-size:10px}
+  .grid-wrap .dia-fito{width:58px;min-width:58px;background:#fdf0f0;color:#a32020;font-weight:800;position:sticky;left:0;font-size:10px;border-color:#e8b0b0}
   .grid-wrap .hdr-riego{background:#dce8f5;color:var(--text);font-weight:800;position:sticky;top:0;border-color:#9ab8d8}
-  .grid-wrap .hdr-fito{background:var(--red-light);color:var(--text);font-weight:800;position:sticky;top:0}
+  .grid-wrap .hdr-fito{background:#fdf0f0;color:var(--text);font-weight:800;position:sticky;top:0;border-color:#e8b0b0}
   .grid-wrap .celda-riego{background:#fff;color:#0a5a0a;font-weight:700;font-size:9px;border-color:#9ab8d8}
-  .grid-wrap .celda-fito{background:#fdf0e8;color:#7a1a1a;font-weight:700;font-size:9px}
-  .grid-wrap .dia-especificos{width:58px;min-width:58px;background:var(--verde-light);color:var(--verde);font-weight:800;position:sticky;left:0;font-size:10px}
-  .grid-wrap .hdr-especificos{background:var(--verde-light);color:var(--text);font-weight:800;position:sticky;top:0}
-  .grid-wrap .celda-especificos{background:#eaf5ec;color:#0f3d1e;font-weight:700;font-size:9px}
+  .grid-wrap .celda-fito{background:#fdf0e8;color:#7a1a1a;font-weight:700;font-size:9px;border-color:#e8b0b0}
+  .grid-wrap .dia-especificos{width:58px;min-width:58px;background:#eaf5ea;color:#2e7d32;font-weight:800;position:sticky;left:0;font-size:10px;border-color:#a5d6a7}
+  .grid-wrap .hdr-especificos{background:#eaf5ea;color:var(--text);font-weight:800;position:sticky;top:0;border-color:#a5d6a7}
+  .grid-wrap .celda-especificos{background:#eaf7e0;color:#1b5e20;font-weight:700;font-size:9px;border-color:#a5d6a7}
   .grid-wrap .celda-vacia{color:#ccc;font-size:9px}
 
   /* Estado de calidad (checks por partida) */
@@ -1680,9 +1681,9 @@ window.renderGrid = function (tipo) {
   info.textContent = `${layout?.label || 'INV ' + inv} — copia del ${new Date(cache.capturadoEn).toLocaleString('es-ES')}`;
 
   const { dia: claseDia, hdr: claseHdr, celda: claseCelda } = GRID_ESTILOS[tipo];
-  const colorBanda = { riego: '#1558a0', fito: '#a32020', especificos: 'var(--verde)' }[tipo];
-  const fondoBanda = { riego: '#f0f4f8', fito: '#fdf0f0', especificos: 'var(--verde-light)' }[tipo];
-  const navClase = { riego: 'mod-riego', fito: 'mod-fito', especificos: '' }[tipo];
+  const colorBanda = { riego: '#1558a0', fito: '#a32020', especificos: '#2e7d32' }[tipo];
+  const fondoBanda = { riego: '#f0f4f8', fito: '#fdf0f0', especificos: '#eaf5ea' }[tipo];
+  const navClase = { riego: 'mod-riego', fito: 'mod-fito', especificos: 'mod-especificos' }[tipo];
   const nav = document.querySelector(`#pg-${tipo} .quincena-nav`);
   if (nav && navClase) nav.classList.add(navClase);
   // Igual que en La Sala: Riego, Plaguicidas Y Específicos envuelven el
@@ -1690,6 +1691,12 @@ window.renderGrid = function (tipo) {
   // usan exactamente el mismo patrón visual, cada uno con su color.
   const colorCorchete = { riego: '#0a7a0a', fito: '#a32020', especificos: '#2e7d32' }[tipo];
   const colorTextoCelda = { riego: '#0a5a0a', fito: '#7a1a1a', especificos: '#1b5e20' }[tipo];
+  // Borde exacto de cada rejilla en La Sala — antes las celdas con dato de
+  // Plaguicidas/Específicos usaban el borde gris genérico de la app (nunca
+  // heredaban el de su propia clase .celda-X porque esa clase solo se
+  // aplicaba cuando la celda NO tenía color de fondo, y estas dos siempre
+  // lo tienen).
+  const bordeGrid = { riego: '#9ab8d8', fito: '#e8b0b0', especificos: '#a5d6a7' }[tipo];
 
   function rawDe(diaData, calle) { return diaData[calle]; }
   function textoDe(diaData, calle) {
@@ -1774,16 +1781,16 @@ window.renderGrid = function (tipo) {
               `<span style="font-size:9px;font-weight:900;color:${colorCorchete};flex-shrink:0;align-self:flex-end">]</span>` +
               `</div>`
             : escapar(br.texto);
-          celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="padding:2px 4px;vertical-align:middle;${estiloBg}">${contenido}</td>`;
+          celdas += `<td class="${bg ? '' : claseCelda}" colspan="${br.span}" title="${escapado}" style="padding:2px 4px;vertical-align:middle;border-color:${bordeGrid};${estiloBg}">${contenido}</td>`;
           i += br.span;
         } else {
-          const estiloBg = resaltado ? `style="background:${resaltado.bg}"` : '';
-          celdas += `<td class="celda-vacia" ${estiloBg}>·</td>`;
+          const estiloBg = resaltado ? `background:${resaltado.bg}` : '';
+          celdas += `<td class="celda-vacia" style="border-color:${bordeGrid};${estiloBg}">·</td>`;
           i++;
         }
       }
-      const estiloDia = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : '';
-      const estiloSemana = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label}"` : 'style="font-size:9px;color:var(--muted)"';
+      const estiloDia = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label};border-color:${bordeGrid}"` : `style="border-color:${bordeGrid}"`;
+      const estiloSemana = resaltado ? `style="background:${resaltado.bg};color:${resaltado.label};border-color:${bordeGrid}"` : `style="font-size:9px;color:var(--muted);border-color:${bordeGrid}"`;
       return `<tr><td class="${claseDia}" title="día interno ${dia}" ${estiloDia}>${formatoFechaCorta(diaAFecha(dia))}</td>${celdas}<td ${estiloSemana}>${semana}</td></tr>`;
     }).join('');
 
