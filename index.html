@@ -1076,30 +1076,30 @@ function renderControlCard(c, seccion) {
   if (t) calleReal = `INV ${t.invId} — ${t.label}`;
 
   return `<div class="control-card">
-    <div class="control-card-cliente">${c.clienteVariedad || '—'}</div>
-    <div class="control-card-partida">${c.partida || '— Sin partida —'}</div>
+    <div class="control-card-cliente">${escapar(c.clienteVariedad) || '—'}</div>
+    <div class="control-card-partida">${escapar(c.partida) || '— Sin partida —'}</div>
     <div class="control-card-badges">
-      <span class="control-badge">Nº bandejas: ${c.numBandejas ?? '—'}</span>
-      <span class="control-badge">Calle real: ${calleReal}</span>
+      <span class="control-badge">Nº bandejas: ${escapar(c.numBandejas) ?? '—'}</span>
+      <span class="control-badge">Calle real: ${escapar(calleReal)}</span>
     </div>
     <div class="control-categorias-grid">${renderControlCategorias(c)}</div>
-    ${c.observaciones ? `<div class="control-card-obs">${c.observaciones}</div>` : ''}
+    ${c.observaciones ? `<div class="control-card-obs">${escapar(c.observaciones)}</div>` : ''}
   </div>`;
 }
 
 function renderControlCargaCard(c) {
   const t = calleTramoDeCarga(c);
   return `<div class="control-card">
-    <div class="control-card-cliente">${c.cliente || '—'}</div>
-    <div class="control-card-partida">${c.partida || '— Sin partida —'}</div>
+    <div class="control-card-cliente">${escapar(c.cliente) || '—'}</div>
+    <div class="control-card-partida">${escapar(c.partida) || '— Sin partida —'}</div>
     <div class="control-card-badges">
-      <span class="control-badge">Variedad: ${c.variedad || '—'}</span>
-      <span class="control-badge">Nº bandejas: ${c.numBandejas ?? '—'}</span>
-      <span class="control-badge">Invernadero: ${c.invernadero || '—'}</span>
-      <span class="control-badge verde">Calle: ${t ? t.label : '—'}</span>
+      <span class="control-badge">Variedad: ${escapar(c.variedad) || '—'}</span>
+      <span class="control-badge">Nº bandejas: ${escapar(c.numBandejas) ?? '—'}</span>
+      <span class="control-badge">Invernadero: ${escapar(c.invernadero) || '—'}</span>
+      <span class="control-badge verde">Calle: ${escapar(t ? t.label : '—')}</span>
     </div>
     <div class="control-categorias-grid">${renderControlCategorias(c)}</div>
-    ${c.observaciones ? `<div class="control-card-obs">${c.observaciones}</div>` : ''}
+    ${c.observaciones ? `<div class="control-card-obs">${escapar(c.observaciones)}</div>` : ''}
   </div>`;
 }
 
@@ -1154,7 +1154,7 @@ window.mostrarListadoControl = function (idx) {
   document.getElementById('control-listado-titulo').textContent = `${titulo} (${lineas.length})`;
   document.getElementById('control-listado-body').innerHTML = lineas.length === 0
     ? `<div class="info" style="text-align:center;padding:1.5rem;font-style:italic">Sin partidas.</div>`
-    : `<table><thead><tr><th>Partida</th><th>Cliente y variedad</th></tr></thead><tbody>${lineas.map(c => `<tr><td style="font-weight:800;color:var(--blue)">${c.partida || '—'}</td><td>${c.clienteVariedad || '—'}</td></tr>`).join('')}</tbody></table>`;
+    : `<table><thead><tr><th>Partida</th><th>Cliente y variedad</th></tr></thead><tbody>${lineas.map(c => `<tr><td style="font-weight:800;color:var(--blue)">${escapar(c.partida) || '—'}</td><td>${escapar(c.clienteVariedad) || '—'}</td></tr>`).join('')}</tbody></table>`;
   document.getElementById('control-listado-modal').classList.add('visible');
 };
 
@@ -1663,8 +1663,8 @@ function renderBloqueMapa(bloque) {
   const dia = c.datos_raw?.dia;
   const st = dia != null ? (() => { const f = diaAFecha(dia); return `ST: ${f.getDate()}/${f.getMonth() + 1}`; })() : '';
   return `<div style="background:${fondo.bg};border:1px solid ${fondo.border};border-radius:6px;padding:4px 6px;height:100%;font-size:10px;overflow:hidden">
-    <div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.partida}</div>
-    <div style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.cliente_variedad || ''}</div>
+    <div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapar(c.partida)}</div>
+    <div style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapar(c.cliente_variedad) || ''}</div>
     <div style="font-size:9px;color:var(--muted)">${st}</div>
   </div>`;
 }
