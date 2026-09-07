@@ -177,11 +177,12 @@
   .control-filtro-btn.activo{border-color:transparent;color:#fff}
 
   .control-lineas-lista{display:flex;flex-direction:column;gap:12px}
-  .control-card{border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;background:var(--surface)}
+  .control-card{border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;background:var(--surface);box-shadow:0 2px 10px rgba(20,40,25,.08)}
   .control-card-cliente{font-size:14px;font-weight:800}
   .control-card-partida{font-size:19px;font-weight:900;color:var(--blue);margin-top:3px;letter-spacing:.02em}
   .control-card-badges{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
-  .control-badge{font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue);border-radius:999px;padding:3px 10px}
+  .control-badge{font-size:11px;font-weight:700;background:#f0f4f8;color:#1558a0;border-radius:999px;padding:3px 10px}
+  .control-badge.verde{background:#eef9f0;color:#2e7d32}
   .control-categorias-grid{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
   .control-categoria-titulo{font-size:10px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
   .control-pills{display:flex;flex-wrap:wrap;gap:6px}
@@ -601,7 +602,12 @@ let controlQuincenaOffset = null;
 let controlDiaSel = null;
 let controlVista = 'lineas';
 let controlFiltroEstado = 'todos';
-let controlInvFiltro = '';
+// Filtro de invernadero SEPARADO por sección — igual que en La Sala
+// (controlCargaInvFiltro/controlTunelInvFiltro): compartir una sola
+// variable hacía que cambiar de Túnel a Carga arrastrara el filtro
+// indebidamente de una sección a otra.
+let controlTunelInvFiltro = '';
+let controlCargaInvFiltro = '';
 
 let conteoTutaCache = null; // { [dia]: { [invCasetaKey]: {feromona, placa, conteo} } }
 let conteoTutaQuincenaOffset = null;
@@ -639,23 +645,65 @@ function controlLineaCompletada(c) {
   return CONTROL_CHECK_CATEGORIAS.every(cat => c[cat.key] && Object.values(c[cat.key]).some(v => v));
 }
 
+// Igual que codigoInv/formatCalleConInv/formatRangoConInv/formatTramosLabel
+// en La Sala: la "calle real" se muestra como invernadero+calle pegados y
+// rellenados a 2 dígitos (ej. INV 11, calle 6 → "C/1106"), no como "C/6".
+function codigoInv(invId) {
+  return String(invId).replace(/[^0-9]/g, '');
+}
+function formatCalleConInv(invId, calle) {
+  return codigoInv(invId) + String(calle).padStart(2, '0');
+}
+function formatRangoConInv(invId, desde, hasta) {
+  return (desde === hasta || hasta == null)
+    ? `C/${formatCalleConInv(invId, desde)}`
+    : `C/${formatCalleConInv(invId, desde)}-${formatCalleConInv(invId, hasta)}`;
+}
+function formatTramosLabel(invId, tramos) {
+  if (!tramos || !tramos.length) return '';
+  return tramos.map(t => formatRangoConInv(invId, t.desde, t.hasta)).join(', ');
+}
+
 function calleTramoDeTunel(c) {
   if (!c.invId) return null;
   const tramos = (c.tramos && c.tramos.length) ? c.tramos : [{ desde: c.calleDesde, hasta: c.calleHasta }];
   if (tramos[0].desde == null) return null;
   const desde = Math.min(...tramos.map(t => t.desde));
   const hasta = Math.max(...tramos.map(t => t.hasta ?? t.desde));
-  const label = tramos.map(t => (t.desde === (t.hasta ?? t.desde)) ? `C/${t.desde}` : `C/${t.desde}-${t.hasta}`).join(', ');
-  return { invId: c.invId, desde, hasta, label };
+  return { invId: c.invId, desde, hasta, label: formatTramosLabel(c.invId, tramos) };
 }
 
-function calleTramoDeCarga(c) {
+function calleTramoDeCargaDirecta(c) {
   const m = /^(\d{1,2})-(\d{1,3})-(\d{1,3})$/.exec(c.invernadero || '');
   if (!m) return null;
   const invNum = m[1].replace(/^0+(?=\d)/, '');
   const desde = Math.min(parseInt(m[2], 10), parseInt(m[3], 10));
   const hasta = Math.max(parseInt(m[2], 10), parseInt(m[3], 10));
   return { invId: invNum, desde, hasta, label: desde === hasta ? `${desde}` : `${desde}-${hasta}` };
+}
+// Si la línea de Carga no trae su propio invernadero/calle (patrón "nn-x-y"
+// en c.invernadero), se busca la línea "hermana" de Check Túnel con la
+// misma partida — igual que calleTramoDeCarga en La Sala.
+function calleTramoDeCarga(c) {
+  const directa = calleTramoDeCargaDirecta(c);
+  if (directa) return directa;
+  if (!c.partida || !controlChecksCache) return null;
+  const entrada = controlChecksCache.find(x => x.tipo === 'tunel' && x.partida === c.partida && x.invId && x.numBandejas === c.numBandejas)
+    || controlChecksCache.find(x => x.tipo === 'tunel' && x.partida === c.partida && x.invId);
+  if (!entrada) return null;
+  const tramos = (entrada.tramos && entrada.tramos.length) ? entrada.tramos : [{ desde: entrada.calleDesde, hasta: entrada.calleHasta }];
+  if (tramos[0].desde == null) return null;
+  const desde = Math.min(...tramos.map(t => t.desde));
+  const hasta = Math.max(...tramos.map(t => t.hasta ?? t.desde));
+  return { invId: entrada.invId, desde, hasta, label: formatTramosLabel(entrada.invId, tramos) };
+}
+// En Carga no se sabe si una calle es del lado A o B (el parte no lo dice),
+// así que al filtrar por invernadero hay que aceptar cualquiera de los dos
+// lados si el número coincide — igual que coincideInvernaderoCarga en La Sala.
+function coincideInvernaderoCarga(invIdTramo, filtroSeleccionado) {
+  if (invIdTramo === filtroSeleccionado) return true;
+  const numeroFiltro = filtroSeleccionado.replace(/[A-Za-z]+$/, '');
+  return invIdTramo === numeroFiltro;
 }
 
 window.cargarControlModulo = async function () {
@@ -747,7 +795,6 @@ window.seleccionarControlSeccion = function (key) {
     if (controlQuincenaOffset === null) controlQuincenaOffset = quincenaOffsetActual();
     if (controlDiaSel === null) controlDiaSel = diaDeHoy();
     controlFiltroEstado = 'todos';
-    controlInvFiltro = '';
   }
   renderControlModulo();
 };
@@ -765,7 +812,8 @@ window.cambiarControlDia = function (dia) {
 
 window.cambiarControlVista = function (v) { controlVista = v; renderControlModulo(); };
 window.cambiarControlFiltroEstado = function (v) { controlFiltroEstado = v; renderControlModulo(); };
-window.cambiarControlInvFiltro = function (v) { controlInvFiltro = v; renderControlModulo(); };
+window.cambiarControlCargaInvFiltro = function (v) { controlCargaInvFiltro = v; renderControlModulo(); };
+window.cambiarControlTunelInvFiltro = function (v) { controlTunelInvFiltro = v; renderControlModulo(); };
 
 window.cambiarConteoTutaQuincena = function (delta) {
   conteoTutaQuincenaOffset = Math.max(0, conteoTutaQuincenaOffset + delta);
@@ -798,12 +846,16 @@ function renderControlInvernaderoSeccion() {
       <div style="font-size:12px;font-weight:600;opacity:.95;margin-top:2px">${escapar(l.variedad) || '—'}</div>
       <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;font-weight:700;opacity:.9;flex-wrap:wrap">
         <span>📍 Calle ${escapar(l.calle) || '—'}</span>
-        <span>📦 ${escapar(l.bandejas) || 0} bandejas${l.tresbolillo ? ` (= ${bandejasEquivalentes(l)})` : ''}</span>
+        <span>📦 ${escapar(l.bandejas) || 0} bandejas${l.tresbolillo ? ` <span style="opacity:.85">(= ${bandejasEquivalentes(l)})</span>` : ''}</span>
       </div>
       ${l.tresbolillo ? `<div style="margin-top:8px;display:inline-block;padding:5px 11px;font-size:10.5px;font-weight:800;border-radius:6px;border:1.5px solid rgba(255,255,255,.5);background:#fff;color:#1a5c2e">✓ ⚿ Tresbolillo</div>` : ''}
     </div>`).join('');
 
   return `
+    <div style="margin-bottom:1.1rem">
+      <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px">Check Invernadero</h2>
+      <p style="font-size:12px;color:var(--muted)">Líneas por partida — variedad, calle y bandejas.</p>
+    </div>
     <div class="control-filtros-row" style="align-items:flex-end;background:#f2f4f0;border-radius:10px;padding:10px 12px">
       <div>
         <label style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Filtrar por variedad</label>
@@ -828,13 +880,21 @@ function renderConteoTutaSeccion(seccion) {
     conteoTutaDiaSel = diasQ.includes(diaDeHoy()) ? diaDeHoy() : (diasQ[0] ?? null);
   }
 
+  const cabeceraHTML = `
+    <div style="margin-bottom:1.1rem">
+      <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px">${seccion.label}</h2>
+      <p style="font-size:12px;color:var(--muted)">Datos actualizados semanalmente (cada jueves).</p>
+    </div>`;
   const vistaToggleHTML = `
-    <div class="control-vista-toggle">
-      <button class="${conteoTutaVista === 'datos' ? 'activo' : ''}" style="${conteoTutaVista === 'datos' ? `background:${seccion.color}` : ''}" onclick="cambiarConteoTutaVista('datos')">📋 Datos</button>
-      <button class="${conteoTutaVista === 'dashboard' ? 'activo' : ''}" style="${conteoTutaVista === 'dashboard' ? `background:${seccion.color}` : ''}" onclick="cambiarConteoTutaVista('dashboard')">📊 Dashboard</button>
+    <div style="display:flex;gap:4px">
+      <button style="padding:9px 18px;border-radius:8px 8px 0 0;font-size:12px;font-weight:800;border:none;cursor:pointer;background:${conteoTutaVista === 'datos' ? seccion.color : '#e8e2dc'};color:${conteoTutaVista === 'datos' ? '#fff' : 'var(--muted)'}" onclick="cambiarConteoTutaVista('datos')">📋 Introducir datos</button>
+      <button style="padding:9px 18px;border-radius:8px 8px 0 0;font-size:12px;font-weight:800;border:none;cursor:pointer;background:${conteoTutaVista === 'dashboard' ? seccion.color : '#e8e2dc'};color:${conteoTutaVista === 'dashboard' ? '#fff' : 'var(--muted)'}" onclick="cambiarConteoTutaVista('dashboard')">📊 Dashboard</button>
     </div>`;
 
-  if (conteoTutaVista === 'dashboard') return vistaToggleHTML + renderConteoTutaDashboard(seccion);
+  if (conteoTutaVista === 'dashboard') {
+    return cabeceraHTML + vistaToggleHTML +
+      `<div style="background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:1.25rem">${renderConteoTutaDashboard(seccion)}</div>`;
+  }
 
   const diaBotonesHTML = diasQ.length
     ? diasQ.map(d => `
@@ -856,15 +916,16 @@ function renderConteoTutaSeccion(seccion) {
     </div>`;
   }).join('');
 
-  return `
-    ${vistaToggleHTML}
-    <div class="control-quincena-nav">
-      <button onclick="cambiarConteoTutaQuincena(-1)" ${conteoTutaQuincenaOffset <= 0 ? 'disabled' : ''}>‹</button>
-      <span>Quincena ${conteoTutaQuincenaOffset + 1} · ${formatoFechaCorta(diaAFecha(quincenaDiasDe(conteoTutaQuincenaOffset)[0]))} – ${formatoFechaCorta(diaAFecha(quincenaDiasDe(conteoTutaQuincenaOffset)[13]))}</span>
-      <button onclick="cambiarConteoTutaQuincena(1)">›</button>
+  return cabeceraHTML + vistaToggleHTML + `
+    <div style="background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:1.25rem">
+      <div class="control-quincena-nav">
+        <button onclick="cambiarConteoTutaQuincena(-1)" ${conteoTutaQuincenaOffset <= 0 ? 'disabled' : ''}>‹</button>
+        <span>Quincena ${conteoTutaQuincenaOffset + 1} · ${formatoFechaCorta(diaAFecha(quincenaDiasDe(conteoTutaQuincenaOffset)[0]))} – ${formatoFechaCorta(diaAFecha(quincenaDiasDe(conteoTutaQuincenaOffset)[13]))}</span>
+        <button onclick="cambiarConteoTutaQuincena(1)">›</button>
+      </div>
+      <div class="control-dias-row">${diaBotonesHTML}</div>
+      <div class="control-categorias-grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">${tarjetasHTML}</div>
     </div>
-    <div class="control-dias-row">${diaBotonesHTML}</div>
-    <div class="control-categorias-grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">${tarjetasHTML}</div>
   `;
 }
 
@@ -919,7 +980,7 @@ function renderConteoTutaDashboard(seccion) {
   }).join('');
   return `
     <div style="font-size:11px;color:var(--muted);margin:4px 0 10px">Comparativa de conteo (últimas ${ultimas.length} semana${ultimas.length === 1 ? '' : 's'} con datos) — <span style="color:#c62828;font-weight:800">▲ rojo</span> sube la captura, <span style="color:#2e7d32;font-weight:800">▼ verde</span> baja.</div>
-    <div class="control-categorias-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${filasHTML}</div>`;
+    <div class="control-categorias-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">${filasHTML}</div>`;
 }
 
 function renderControlSeccion(seccion) {
@@ -959,19 +1020,23 @@ function renderControlLineas(seccion, listaDia) {
     : controlFiltroEstado === 'pendientes' ? listaDia.filter(c => !controlLineaCompletada(c))
     : listaDia;
 
-  if (seccion.key === 'carga' && controlInvFiltro) {
-    lista = lista.map(c => ({ c, t: calleTramoDeCarga(c) })).filter(x => x.t && x.t.invId === controlInvFiltro).sort((a, b) => a.t.desde - b.t.desde).map(x => x.c);
-  } else if (seccion.key === 'tunel' && controlInvFiltro) {
-    lista = lista.map(c => ({ c, t: calleTramoDeTunel(c) })).filter(x => x.t && x.t.invId === controlInvFiltro).sort((a, b) => a.t.desde - b.t.desde).map(x => x.c);
+  if (seccion.key === 'carga' && controlCargaInvFiltro) {
+    lista = lista.map(c => ({ c, t: calleTramoDeCarga(c) })).filter(x => x.t && coincideInvernaderoCarga(x.t.invId, controlCargaInvFiltro)).sort((a, b) => a.t.desde - b.t.desde).map(x => x.c);
+  } else if (seccion.key === 'tunel' && controlTunelInvFiltro) {
+    lista = lista.map(c => ({ c, t: calleTramoDeTunel(c) })).filter(x => x.t && x.t.invId === controlTunelInvFiltro).sort((a, b) => a.t.desde - b.t.desde).map(x => x.c);
   }
 
   const filtroBtn = (v, label, n) => `<button class="control-filtro-btn ${controlFiltroEstado === v ? 'activo' : ''}" style="${controlFiltroEstado === v ? `background:${seccion.color}` : ''}" onclick="cambiarControlFiltroEstado('${v}')">${label} (${n})</button>`;
 
+  // Filtro de invernadero separado por sección (ver controlCargaInvFiltro/
+  // controlTunelInvFiltro) — igual que en La Sala.
+  const invFiltroActual = seccion.key === 'carga' ? controlCargaInvFiltro : controlTunelInvFiltro;
+  const invFiltroHandler = seccion.key === 'carga' ? 'cambiarControlCargaInvFiltro' : 'cambiarControlTunelInvFiltro';
   const filtroInvHTML = (seccion.key === 'carga' || seccion.key === 'tunel') ? `
-    <select onchange="cambiarControlInvFiltro(this.value)" style="margin-bottom:1rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:12px">
+    <select onchange="${invFiltroHandler}(this.value)" style="margin-bottom:1rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:12px">
       <option value="">Todos los invernaderos</option>
-      <optgroup label="Sala 1">${CONTROL_INV_SALA1.map(id => `<option value="${id}" ${controlInvFiltro === id ? 'selected' : ''}>INV ${id}</option>`).join('')}</optgroup>
-      <optgroup label="Sala 2">${CONTROL_INV_SALA2.map(id => `<option value="${id}" ${controlInvFiltro === id ? 'selected' : ''}>INV ${id}</option>`).join('')}</optgroup>
+      <optgroup label="Sala 1">${CONTROL_INV_SALA1.map(id => `<option value="${id}" ${invFiltroActual === id ? 'selected' : ''}>INV ${id}</option>`).join('')}</optgroup>
+      <optgroup label="Sala 2">${CONTROL_INV_SALA2.map(id => `<option value="${id}" ${invFiltroActual === id ? 'selected' : ''}>INV ${id}</option>`).join('')}</optgroup>
     </select>` : '';
 
   return `
@@ -987,25 +1052,28 @@ function renderControlLineas(seccion, listaDia) {
   `;
 }
 
-function renderControlCard(c, seccion) {
-  let calleReal = 'Sin asignar';
-  if (seccion.key === 'carga') {
-    const t = calleTramoDeCarga(c);
-    if (t) calleReal = `INV ${t.invId} — C/${t.label}`;
-  } else {
-    const t = calleTramoDeTunel(c);
-    if (t) calleReal = `INV ${t.invId} — ${t.label}`;
-  }
-
-  const categoriasHTML = CONTROL_CHECK_CATEGORIAS.map(cat => {
+function renderControlCategorias(c) {
+  return CONTROL_CHECK_CATEGORIAS.map(cat => {
     const opcionesHTML = cat.opciones.map(o => {
       const activo = !!(c[cat.key] && c[cat.key][o.key]);
       return `<span class="control-pill" style="background:${activo ? cat.gradiente : cat.tinte};color:${activo ? '#fff' : 'var(--text)'}">${activo ? '✓ ' : ''}${o.label}</span>`;
     }).join('');
-    const enfermedadesHTML = (cat.key === 'sanidad' && c.sanidad && c.sanidad.enferma) ? `
-      <div class="control-enfermedades">${SANIDAD_ENFERMEDADES.filter(e => c.sanidadEnfermedades && c.sanidadEnfermedades[e.key]).map(e => `<span class="control-pill" style="background:#c62828;color:#fff">${e.label}</span>`).join('')}</div>` : '';
+    const enfermas = SANIDAD_ENFERMEDADES.filter(e => c.sanidadEnfermedades && c.sanidadEnfermedades[e.key]);
+    const enfermedadesHTML = (cat.key === 'sanidad' && c.sanidad && c.sanidad.enferma && enfermas.length) ? `
+      <div class="control-enfermedades">${enfermas.map(e => `<span class="control-pill" style="background:#c62828;color:#fff">${e.label}</span>`).join('')}</div>` : '';
     return `<div><div class="control-categoria-titulo">${cat.label}</div><div class="control-pills">${opcionesHTML}</div>${enfermedadesHTML}</div>`;
   }).join('');
+}
+
+// Check Carga tiene su propia ficha (Cliente/Partida/Variedad/Nº bandejas/
+// Invernadero como campos separados, con su "Calle" en verde) — igual que
+// renderControlCargaCardHTML en La Sala, no comparte estructura con Túnel.
+function renderControlCard(c, seccion) {
+  if (seccion.key === 'carga') return renderControlCargaCard(c);
+
+  let calleReal = 'Sin asignar';
+  const t = calleTramoDeTunel(c);
+  if (t) calleReal = `INV ${t.invId} — ${t.label}`;
 
   return `<div class="control-card">
     <div class="control-card-cliente">${c.clienteVariedad || '—'}</div>
@@ -1014,7 +1082,23 @@ function renderControlCard(c, seccion) {
       <span class="control-badge">Nº bandejas: ${c.numBandejas ?? '—'}</span>
       <span class="control-badge">Calle real: ${calleReal}</span>
     </div>
-    <div class="control-categorias-grid">${categoriasHTML}</div>
+    <div class="control-categorias-grid">${renderControlCategorias(c)}</div>
+    ${c.observaciones ? `<div class="control-card-obs">${c.observaciones}</div>` : ''}
+  </div>`;
+}
+
+function renderControlCargaCard(c) {
+  const t = calleTramoDeCarga(c);
+  return `<div class="control-card">
+    <div class="control-card-cliente">${c.cliente || '—'}</div>
+    <div class="control-card-partida">${c.partida || '— Sin partida —'}</div>
+    <div class="control-card-badges">
+      <span class="control-badge">Variedad: ${c.variedad || '—'}</span>
+      <span class="control-badge">Nº bandejas: ${c.numBandejas ?? '—'}</span>
+      <span class="control-badge">Invernadero: ${c.invernadero || '—'}</span>
+      <span class="control-badge verde">Calle: ${t ? t.label : '—'}</span>
+    </div>
+    <div class="control-categorias-grid">${renderControlCategorias(c)}</div>
     ${c.observaciones ? `<div class="control-card-obs">${c.observaciones}</div>` : ''}
   </div>`;
 }
@@ -1058,7 +1142,8 @@ function renderControlDashboard(seccion, listaDia) {
   const conteosEnf = SANIDAD_ENFERMEDADES.map(e => ({ label: e.label, n: conEnferma.filter(c => c.sanidadEnfermedades && c.sanidadEnfermedades[e.key]).length, lineas: conEnferma.filter(c => c.sanidadEnfermedades && c.sanidadEnfermedades[e.key]) })).filter(x => x.n > 0);
   const enfermedadesHTML = conteosEnf.length ? (() => {
     const max = Math.max(1, ...conteosEnf.map(x => x.n));
-    return `<div class="control-categoria-box"><div class="control-categoria-box-titulo" style="color:#c62828">Enfermedades (${conEnferma.length})</div>${conteosEnf.map(x => barra(x.label, x.n, max, 'linear-gradient(135deg,#c62828,#e57373)', '#fdece5', x.lineas)).join('')}</div>`;
+    const n = conEnferma.length;
+    return `<div class="control-categoria-box"><div class="control-categoria-box-titulo" style="color:#c62828">Enfermedades (${n} línea${n === 1 ? '' : 's'} enferma${n === 1 ? '' : 's'})</div>${conteosEnf.map(x => barra(x.label, x.n, max, 'linear-gradient(135deg,#c62828,#e57373)', '#fdece5', x.lineas)).join('')}</div>`;
   })() : '';
 
   return statsHTML + `<div class="control-categorias-dashboard">${categoriasHTML}${enfermedadesHTML}</div>`;
@@ -1162,6 +1247,26 @@ function diaAFecha(dia) {
   return f;
 }
 
+// Inverso de diaAFecha: convierte una fecha "dd/mm/aaaa" (formato de
+// p.entrada) al mismo contador de "día" que usa Riego/Plaguicidas — igual
+// que getDiaEntrada en La Sala, para poder calcular el "día de planta".
+function fechaADia(fechaStr) {
+  if (!fechaStr) return null;
+  const [d, m, y] = String(fechaStr).split('/').map(Number);
+  if (!d || !m || !y) return null;
+  const f = new Date(y, m - 1, d);
+  const diffDias = Math.round((f - RIEGO_ANCHOR_DATE) / 86400000);
+  return 15 + diffDias;
+}
+// "Día de planta" = días transcurridos desde que la partida entró al
+// invernadero — igual que getDiaPlanta en La Sala.
+function diaPlantaDe(dia, p) {
+  const diaEntrada = fechaADia(p.entrada);
+  if (diaEntrada == null) return null;
+  const dp = Number(dia) - diaEntrada + 1;
+  return dp >= 1 ? dp : null;
+}
+
 function formatoFechaCorta(fecha) {
   // Igual que riegoDiaLabelCorto en La Sala: sin ceros a la izquierda en el
   // día, y sin el punto final que añade el navegador tras el mes abreviado.
@@ -1183,13 +1288,21 @@ const RIEGO_HIGHLIGHT_POS = {
   7: { bg: '#ccf0d8', label: '#1b5e20' }, // Lunes (semana 2)
 };
 
-function seguimientoDe(datosGrid, p) {
+function seguimientoDe(datosGrid, p, tipo) {
   const inv = p.inv;
   if (!datosGrid || !datosGrid[inv]) return [];
-  // Igual que getSeguimientoRiego/getSeguimientoFito en La Sala: "zona" es el
-  // rango de calles de la propia partida (lo que se ve en la tarjeta como
-  // "Calle"), no solo el texto del riego/tratamiento.
-  const zona = `${p.calle_inicio || ''}${p.calle_fin && p.calle_fin !== p.calle_inicio ? ' – ' + p.calle_fin : ''}` || '—';
+  // Igual que getSeguimientoRiego/getSeguimientoFito en La Sala: la "zona"
+  // NO es la misma fórmula para los dos — Riego muestra el rango relativo
+  // de calles como "C/min-max" (getSeguimientoRiego), Plaguicidas muestra el
+  // rango de calle de la propia partida tal cual ("C/1702 – C/1705",
+  // getSeguimientoFito).
+  const ci = parseInt((p.calle_inicio || '').replace(/\D/g, '')) || 0;
+  const cf = parseInt((p.calle_fin || p.calle_inicio || '').replace(/\D/g, '')) || ci;
+  const relCi = parseInt(String(ci).slice(-2)) || ci;
+  const relCf = parseInt(String(cf).slice(-2)) || cf;
+  const zona = tipo === 'riego'
+    ? `C/${Math.min(relCi, relCf)}-${Math.max(relCi, relCf)}`
+    : (`${p.calle_inicio || ''}${p.calle_fin && p.calle_fin !== p.calle_inicio ? ' – ' + p.calle_fin : ''}` || '—');
   const resultados = [];
   for (const dia of Object.keys(datosGrid[inv])) {
     const diaData = datosGrid[inv][dia];
@@ -1303,18 +1416,18 @@ function buildPartidaCard(p) {
     ? `<img class="foto" src="${p.fotoEntradaB64}">`
     : `<div class="foto-placeholder"><svg class="icon" style="width:26px;height:26px" viewBox="0 0 24 24"><path d="M12 2s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12z"/></svg></div>`;
 
-  const riegoItems = seguimientoDe(partidasCache.riego, p);
-  const fitoItems = seguimientoDe(partidasCache.fito, p);
+  const riegoItems = seguimientoDe(partidasCache.riego, p, 'riego');
+  const fitoItems = seguimientoDe(partidasCache.fito, p, 'fito');
 
   const riegoHTML = riegoItems.length ? `<div class="seg-box riego">
       <div class="titulo">Riego</div>
-      ${riegoItems.slice(0, 3).map(r => `<div><b>Día ${escapar(r.dia)}</b> (${formatoFechaCorta(diaAFecha(r.dia))}): ${escapar(r.texto)} <span style="color:var(--muted)">(${escapar(r.zona)})</span></div>`).join('')}
+      ${riegoItems.slice(0, 3).map(r => `<div><b>Día ${escapar(r.dia)}:</b> ${escapar(r.texto)} <span style="color:var(--muted)">(${escapar(r.zona)})</span></div>`).join('')}
       ${riegoItems.length > 3 ? `<div style="color:var(--muted)">+${riegoItems.length - 3} más</div>` : ''}
     </div>` : '';
 
   const fitoHTML = fitoItems.length ? `<div class="seg-box fito">
       <div class="titulo">Plaguicidas</div>
-      ${fitoItems.slice(0, 3).map(f => `<div><b>Día ${escapar(f.dia)}</b> (${formatoFechaCorta(diaAFecha(f.dia))}): ${escapar(f.texto)} <span style="color:var(--muted)">(${escapar(f.zona)})</span></div>`).join('')}
+      ${fitoItems.slice(0, 3).map(f => `<div><b>Día ${escapar(f.dia)}:</b> ${escapar(f.texto)} <span style="color:var(--muted)">(${escapar(f.zona)})</span></div>`).join('')}
       ${fitoItems.length > 3 ? `<div style="color:var(--muted)">+${fitoItems.length - 3} más</div>` : ''}
     </div>` : '';
 
@@ -1325,8 +1438,8 @@ function buildPartidaCard(p) {
       <div class="variedad">${escapar(p.variedad) || '—'}</div>
       <div class="cliente">${escapar(p.cliente) || '—'}</div>
       <div class="badges">
-        <span class="mini-badge ${isPinzado ? 'ok' : 'pend'}">✂ ${isPinzado ? ('Pinzado' + (pinzFecha ? ' ' + escapar(pinzFecha) : '')) : 'Pendiente de pinzar'}</span>
-        <span class="mini-badge ${tieneFoto ? 'ok' : 'no'}">📷 ${tieneFoto ? 'Foto entrada' : 'Sin foto'}</span>
+        <span class="mini-badge ${isPinzado ? 'ok' : 'pend'}">✂ ${isPinzado ? ('✓ Pinzado' + (pinzFecha ? ' ' + escapar(pinzFecha) : '')) : 'Pendiente de pinzar'}</span>
+        <span class="mini-badge ${tieneFoto ? 'ok' : 'no'}">📷 ${tieneFoto ? '✓ Foto entrada' : 'Sin foto'}</span>
       </div>
       ${riegoHTML}${fitoHTML}
       <div class="footer">
@@ -1343,41 +1456,51 @@ window.abrirPartidaDetalle = function (num, inv) {
   document.getElementById('pt-modal-titulo').textContent = `${p.num} — ${p.variedad || ''}`;
   const k = p.num + '|' + inv;
   const checkInfo = partidasCache.checks[k] || {};
-  const riegoItems = seguimientoDe(partidasCache.riego, p);
-  const fitoItems = seguimientoDe(partidasCache.fito, p);
+  const riegoItems = seguimientoDe(partidasCache.riego, p, 'riego');
+  const fitoItems = seguimientoDe(partidasCache.fito, p, 'fito');
 
   const campos = [
     ['Cliente', p.cliente], ['Variedad', p.variedad], ['Invernadero', inv], ['Lado', p.lado],
     ['Calle', `${p.calle_inicio || ''}${p.calle_fin && p.calle_fin !== p.calle_inicio ? ' – ' + p.calle_fin : ''}`],
-    ['Soporte', p.soporte], ['Entrada', p.entrada], ['Entrega', p.entrega], ['Pinzado previsto', p.pinzado],
+    ['Soporte', p.soporte], ['Entrada', p.entrada], ['Entrega', p.entrega], ['Pinzado', p.pinzado],
   ].filter(([, v]) => v);
 
   const pinzadoSI = checkInfo.pinzado === 'SI' || !!p.pinzadoRealizado;
   const pinzadoFecha = p.pinzadoFechaReal || checkInfo.pinzadoFechaReal || '';
+  const hasFoto = !!p.fotoEntradaB64;
 
-  function tablaSeguimiento(items, cabColor, cabBg, vacioTexto) {
+  // Igual que getFullRiegoLog/getFullFitoLog en La Sala: la cabecera de "Día"
+  // muestra el día de planta (días desde la entrada) cuando se puede
+  // calcular, y cada tabla tiene sus propios colores y su propia etiqueta
+  // de columna (Riego = "Riego aplicado", Plaguicidas = "Tratamiento").
+  function tablaSeguimiento(items, cabColor, cabBg, colTexto, bordeColor, zebraColor, vacioTexto) {
     if (!items.length) return `<div style="font-size:12px;color:#aaa;font-style:italic;padding:8px 0">${vacioTexto}</div>`;
     return `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
       <thead><tr style="background:${cabBg}">
-        <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);color:${cabColor};font-size:10px;white-space:nowrap">Día</th>
-        <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);color:${cabColor};font-size:10px">Texto</th>
-        <th style="padding:5px 8px;text-align:left;border:1px solid var(--border);color:${cabColor};font-size:10px">Calles</th>
+        <th style="padding:5px 8px;text-align:left;border:1px solid ${bordeColor};color:${cabColor};font-size:10px;white-space:nowrap">Día planta</th>
+        <th style="padding:5px 8px;text-align:left;border:1px solid ${bordeColor};color:${cabColor};font-size:10px">${colTexto}</th>
+        <th style="padding:5px 8px;text-align:left;border:1px solid ${bordeColor};color:${cabColor};font-size:10px">Calles</th>
       </tr></thead>
-      <tbody>${items.map((r, i) => `<tr style="background:${i % 2 === 0 ? '#fff' : '#f8fbff'}">
-        <td style="padding:5px 8px;border:1px solid var(--border);font-weight:700;white-space:nowrap;color:${cabColor}">Día ${escapar(r.dia)} (${formatoFechaCorta(diaAFecha(r.dia))})</td>
-        <td style="padding:5px 8px;border:1px solid var(--border)">${escapar(r.texto)}</td>
-        <td style="padding:5px 8px;border:1px solid var(--border);color:${cabColor};font-size:10px;font-weight:600">${escapar(r.zona)}</td>
-      </tr>`).join('')}</tbody>
+      <tbody>${items.map((r, i) => {
+        const dp = diaPlantaDe(r.dia, p);
+        const mesAbrev = diaAFecha(r.dia).toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+        const label = dp ? `Día ${dp} de planta (${r.dia} ${mesAbrev})` : `Día ${r.dia}`;
+        return `<tr style="background:${i % 2 === 0 ? '#fff' : zebraColor}">
+        <td style="padding:5px 8px;border:1px solid ${bordeColor};font-weight:700;white-space:nowrap;color:${cabColor}">${label}</td>
+        <td style="padding:5px 8px;border:1px solid ${bordeColor}">${escapar(r.texto)}</td>
+        <td style="padding:5px 8px;border:1px solid ${bordeColor};color:${cabColor};font-size:10px;font-weight:600">${escapar(r.zona)}</td>
+      </tr>`;
+      }).join('')}</tbody>
     </table>`;
   }
 
   const fotosHTML = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px">
     ${p.fotoEntradaB64
       ? `<div><img src="${p.fotoEntradaB64}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;display:block"><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto entrada</div></div>`
-      : `<div><div style="height:100px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">Sin foto</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto entrada</div></div>`}
+      : `<div><div style="height:100px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">Pendiente</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto entrada</div></div>`}
     ${p.fotoSalida
       ? `<div><img src="${p.fotoSalida}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;display:block"><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto salida</div></div>`
-      : `<div><div style="height:100px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">Sin foto</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto salida</div></div>`}
+      : `<div><div style="height:100px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">Pendiente</div><div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">Foto salida</div></div>`}
   </div>`;
 
   document.getElementById('pt-modal-body').innerHTML = `
@@ -1385,8 +1508,9 @@ window.abrirPartidaDetalle = function (num, inv) {
 
     <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
       <div style="font-size:12px;font-weight:800;margin-bottom:6px">Control Calidad Entrada</div>
-      <div style="margin-bottom:6px">
+      <div style="margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap">
         <span class="tag" style="background:${pinzadoSI ? '#e8f5e9' : '#fff8e1'};color:${pinzadoSI ? '#2e7d32' : '#f57f17'};border-color:${pinzadoSI ? '#a5d6a7' : '#ffe082'}">✂ ${pinzadoSI ? 'Pinzado' + (pinzadoFecha ? ' ' + escapar(pinzadoFecha) : '') : 'Pendiente de pinzar'}</span>
+        <span class="tag" style="background:${hasFoto ? '#e8f5e9' : '#fce4ec'};color:${hasFoto ? '#2e7d32' : '#c62828'};border-color:${hasFoto ? '#a5d6a7' : '#f48fb1'}">${hasFoto ? '✓ Foto entrada disponible' : '✕ Sin foto de entrada'}</span>
       </div>
       ${renderChecksCategoriaPills(checkInfo, '')}
       ${checkInfo.obs ? `<div class="obs" style="margin-top:6px">${escapar(checkInfo.obs)}</div>` : ''}
@@ -1406,12 +1530,12 @@ window.abrirPartidaDetalle = function (num, inv) {
 
     <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
       <div style="font-size:12px;font-weight:800;color:#1558a0;margin-bottom:2px">Registro de riego</div>
-      ${tablaSeguimiento(riegoItems, '#1558a0', '#e8f0fb', 'Sin registros de riego para estas calles.')}
+      ${tablaSeguimiento(riegoItems, '#1558a0', '#e8f0fb', 'Riego aplicado', '#b0c8e0', '#f8fbff', 'Sin registros de riego para estas calles.')}
     </div>
 
     <div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)">
       <div style="font-size:12px;font-weight:800;color:#a32020;margin-bottom:2px">Registro de plaguicidas</div>
-      ${tablaSeguimiento(fitoItems, '#a32020', '#fdf0f0', 'Sin registros de plaguicidas para estas calles.')}
+      ${tablaSeguimiento(fitoItems, '#a32020', '#fdf0f0', 'Tratamiento', '#e8b0b0', '#fdf5f5', 'Sin registros de plaguicidas para estas calles.')}
     </div>
   `;
   document.getElementById('pt-modal').classList.add('visible');
