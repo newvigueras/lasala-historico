@@ -1205,6 +1205,28 @@ const GRID_ESTILOS = {
   especificos: { dia: 'dia-especificos', hdr: 'hdr-especificos', celda: 'celda-especificos' },
 };
 
+// Igual que ESPECIFICO_HORARIOS/ESPECIFICO_TIPOS y parsearTextoEspecifico en
+// La Sala: el color de una celda de Específicos depende del "tipo" exacto
+// que queda tras quitar tratamiento+dosis y horario del texto (posicional),
+// NO de si el texto simplemente CONTIENE la palabra "MONTONES" — un texto
+// real como "PP 1 + 19:30 + PASE NORMAL + MONTONES" tiene tipo "PASE NORMAL
+// + MONTONES" (verde, igual que "PASE NORMAL" a secas), no el morado claro
+// reservado al tipo "MONTONES" a secas; un simple .includes('MONTONES')
+// los confundía.
+const ESPECIFICO_HORARIOS = ['POR LA MAÑANA', '17:00', '18:00', '19:00', '19:30', '20:00'];
+const ESPECIFICO_TIPOS = ['PASE RÁPIDO + MONTONES', 'PASE NORMAL', 'PASE NORMAL + MONTONES', 'MONTONES'];
+function tipoDeTextoEspecifico(texto) {
+  if (!texto) return '';
+  const obsIdx = texto.indexOf(' — ');
+  const base = obsIdx !== -1 ? texto.slice(0, obsIdx) : texto;
+  const firstIdx = base.indexOf(' + ');
+  if (firstIdx === -1) return '';
+  let resto = base.slice(firstIdx + 3);
+  const h = ESPECIFICO_HORARIOS.find(hh => resto === hh || resto.startsWith(hh + ' + '));
+  if (h) resto = resto === h ? '' : resto.slice(h.length + 3);
+  return (resto && ESPECIFICO_TIPOS.includes(resto)) ? resto : '';
+}
+
 async function fetchSnapshot(dominio) {
   const { data, error } = await supabase
     .from('snapshots_dominio')
@@ -1837,8 +1859,9 @@ window.renderGrid = function (tipo) {
       return esPrimerDia ? '#e6d9f5' : '#fdf0e8';
     }
     if (tipo === 'especificos') {
-      if (br.texto.includes('PASE RÁPIDO + MONTONES')) return '#ffe0b2';
-      if (br.texto.includes('MONTONES')) return '#e1d3f5';
+      const tipoEsp = tipoDeTextoEspecifico(br.texto);
+      if (tipoEsp === 'PASE RÁPIDO + MONTONES') return '#ffe0b2';
+      if (tipoEsp === 'MONTONES') return '#e1d3f5';
       return '#eaf7e0';
     }
     return null; // riego: se decide en el propio bucle de filas (resaltado de fin de semana)
