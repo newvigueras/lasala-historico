@@ -609,6 +609,15 @@ let controlFiltroEstado = 'todos';
 let controlTunelInvFiltro = '';
 let controlCargaInvFiltro = '';
 
+// Análisis de Check Túnel/Carga (buscar, comparar y exportar TODO lo
+// archivado, no un día concreto) — a petición de Antonio, 2026-09-15.
+// Filtro propio por sección, igual que controlTunelInvFiltro/
+// controlCargaInvFiltro de arriba.
+const controlAnalisisFiltro = {
+  tunel: { inv: '', texto: '', desde: '', hasta: '', catKey: '', catVal: '' },
+  carga: { inv: '', texto: '', desde: '', hasta: '', catKey: '', catVal: '' },
+};
+
 let conteoTutaCache = null; // { [dia]: { [invCasetaKey]: {feromona, placa, conteo} } }
 let conteoTutaQuincenaOffset = null;
 let conteoTutaDiaSel = null;
@@ -704,6 +713,19 @@ function coincideInvernaderoCarga(invIdTramo, filtroSeleccionado) {
   if (invIdTramo === filtroSeleccionado) return true;
   const numeroFiltro = filtroSeleccionado.replace(/[A-Za-z]+$/, '');
   return invIdTramo === numeroFiltro;
+}
+
+// Invernadero y texto de búsqueda de una línea de Control, sea Túnel o
+// Carga — para poder filtrar/comparar igual en Análisis sin repetir el
+// if/else de calleTramoDeTunel/calleTramoDeCarga en cada sitio.
+function invIdDeLinea(c, seccionKey) {
+  const t = seccionKey === 'carga' ? calleTramoDeCarga(c) : calleTramoDeTunel(c);
+  return t ? t.invId : null;
+}
+function textoBusquedaDeLinea(c, seccionKey) {
+  return seccionKey === 'carga'
+    ? [c.cliente, c.variedad, c.partida].filter(Boolean).join(' ')
+    : [c.clienteVariedad, c.partida].filter(Boolean).join(' ');
 }
 
 window.cargarControlModulo = async function () {
@@ -989,6 +1011,19 @@ function renderControlSeccion(seccion) {
   if (!seccion.conCheck) {
     return `<div class="info" style="font-style:italic;padding:2rem;text-align:center">Próximamente — esta comprobación todavía no existe en La Sala.</div>`;
   }
+
+  const vistaToggleHTML = `
+    <div class="control-vista-toggle">
+      <button class="${controlVista === 'lineas' ? 'activo' : ''}" style="${controlVista === 'lineas' ? `background:${seccion.color}` : ''}" onclick="cambiarControlVista('lineas')">📋 Líneas</button>
+      <button class="${controlVista === 'dashboard' ? 'activo' : ''}" style="${controlVista === 'dashboard' ? `background:${seccion.color}` : ''}" onclick="cambiarControlVista('dashboard')">📊 Dashboard del día</button>
+      <button class="${controlVista === 'analisis' ? 'activo' : ''}" style="${controlVista === 'analisis' ? `background:${seccion.color}` : ''}" onclick="cambiarControlVista('analisis')">🔍 Análisis</button>
+    </div>`;
+
+  // Análisis mira TODO lo archivado de la sección, no un día ni una
+  // quincena concretos — no tiene sentido mostrarle el navegador de
+  // quincena/día de las otras dos vistas (usa su propio filtro de fechas).
+  if (controlVista === 'analisis') return vistaToggleHTML + renderControlAnalisis(seccion);
+
   const diasQ = quincenaDiasDe(controlQuincenaOffset);
   if (controlDiaSel == null || !diasQ.includes(controlDiaSel)) controlDiaSel = diasQ[0];
   const listaDia = controlChecksCache.filter(c => c.tipo === seccion.key && c.dia === controlDiaSel);
@@ -1005,10 +1040,7 @@ function renderControlSeccion(seccion) {
       <button onclick="cambiarControlQuincena(1)">›</button>
     </div>
     <div class="control-dias-row">${diaBotonesHTML}</div>
-    <div class="control-vista-toggle">
-      <button class="${controlVista === 'lineas' ? 'activo' : ''}" style="${controlVista === 'lineas' ? `background:${seccion.color}` : ''}" onclick="cambiarControlVista('lineas')">📋 Líneas</button>
-      <button class="${controlVista === 'dashboard' ? 'activo' : ''}" style="${controlVista === 'dashboard' ? `background:${seccion.color}` : ''}" onclick="cambiarControlVista('dashboard')">📊 Dashboard del día</button>
-    </div>
+    ${vistaToggleHTML}
     ${controlVista === 'dashboard' ? renderControlDashboard(seccion, listaDia) : renderControlLineas(seccion, listaDia)}
   `;
 }
@@ -1147,6 +1179,229 @@ function renderControlDashboard(seccion, listaDia) {
   })() : '';
 
   return statsHTML + `<div class="control-categorias-dashboard">${categoriasHTML}${enfermedadesHTML}</div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// ANÁLISIS de Check Túnel / Check Carga: buscador avanzado, exportar a
+// CSV, evolución por quincena y comparativas (por invernadero, y Entrada
+// vs Carga de la misma partida) sobre TODO lo archivado — a petición de
+// Antonio, 2026-09-15. Ver controlAnalisisFiltro arriba.
+// ════════════════════════════════════════════════════════════════
+
+window.cambiarControlAnalisisFiltro = function (seccionKey, campo, valor) {
+  controlAnalisisFiltro[seccionKey][campo] = valor;
+  // El valor de categoría depende de qué categoría esté elegida — si se
+  // cambia la categoría, el valor anterior ya no tiene sentido.
+  if (campo === 'catKey') controlAnalisisFiltro[seccionKey].catVal = '';
+  renderControlModulo();
+};
+
+function lineasFiltradasAnalisis(seccionKey) {
+  const f = controlAnalisisFiltro[seccionKey];
+  const texto = f.texto.trim().toLowerCase();
+  const desde = f.desde ? new Date(f.desde + 'T00:00:00') : null;
+  const hasta = f.hasta ? new Date(f.hasta + 'T23:59:59') : null;
+  return controlChecksCache.filter(c => {
+    if (c.tipo !== seccionKey) return false;
+    if (f.inv) {
+      const invId = invIdDeLinea(c, seccionKey);
+      if (!invId) return false;
+      if (seccionKey === 'carga' ? !coincideInvernaderoCarga(invId, f.inv) : invId !== f.inv) return false;
+    }
+    if (texto && !textoBusquedaDeLinea(c, seccionKey).toLowerCase().includes(texto)) return false;
+    if (desde || hasta) {
+      const fecha = diaAFecha(c.dia);
+      if (desde && fecha < desde) return false;
+      if (hasta && fecha > hasta) return false;
+    }
+    if (f.catKey && f.catVal && !(c[f.catKey] && c[f.catKey][f.catVal])) return false;
+    return true;
+  });
+}
+
+function escaparCSV(v) {
+  const s = String(v == null ? '' : v);
+  return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+// Excel en español espera ";" como separador de columnas (usa "," como
+// separador decimal), no "," — con coma, todo el CSV aparece en una sola
+// columna al abrirlo.
+window.exportarControlAnalisisCSV = function (seccionKey) {
+  const lineas = lineasFiltradasAnalisis(seccionKey);
+  const valorCategoria = (c, catKey) => {
+    const cat = CONTROL_CHECK_CATEGORIAS.find(x => x.key === catKey);
+    return cat.opciones.filter(o => c[catKey] && c[catKey][o.key]).map(o => o.label).join(' + ');
+  };
+  const cabecera = (seccionKey === 'carga'
+    ? ['Fecha', 'Partida', 'Cliente', 'Variedad', 'Invernadero', 'Calle', 'Nº bandejas']
+    : ['Fecha', 'Partida', 'Cliente/Variedad', 'Invernadero', 'Calle', 'Nº bandejas']
+  ).concat(CONTROL_CHECK_CATEGORIAS.map(c => c.label), ['Observaciones']);
+  const filas = lineas.map(c => {
+    const t = invIdDeLinea(c, seccionKey) ? (seccionKey === 'carga' ? calleTramoDeCarga(c) : calleTramoDeTunel(c)) : null;
+    const base = seccionKey === 'carga'
+      ? [formatoFechaCorta(diaAFecha(c.dia)), c.partida, c.cliente, c.variedad, c.invernadero, t ? t.label : '', c.numBandejas]
+      : [formatoFechaCorta(diaAFecha(c.dia)), c.partida, c.clienteVariedad, t ? t.invId : '', t ? t.label : '', c.numBandejas];
+    return base.concat(CONTROL_CHECK_CATEGORIAS.map(cat => valorCategoria(c, cat.key)), [c.observaciones || '']);
+  });
+  const csv = [cabecera, ...filas].map(fila => fila.map(escaparCSV).join(';')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `control_${seccionKey}_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+function statCardAnalisis(label, valor, color) {
+  return `<div class="control-stat" style="background:${color}"><div class="label">${label}</div><div class="valor">${valor}</div></div>`;
+}
+
+// Compara, partida a partida, el check de Túnel (entrada) contra el de
+// Carga (salida) — a petición de Antonio: ver si una partida entró bien y
+// salió peor (o al revés). Solo se muestran las partidas del filtro actual
+// que además tengan registro en la OTRA sección.
+function renderComparativaEntradaCarga(seccionKey, lineasFiltradas) {
+  const otraKey = seccionKey === 'tunel' ? 'carga' : 'tunel';
+  const otrasLineas = controlChecksCache.filter(c => c.tipo === otraKey);
+  if (!otrasLineas.length) return '';
+
+  const otraPorPartida = new Map();
+  otrasLineas.forEach(c => { if (c.partida && !otraPorPartida.has(c.partida)) otraPorPartida.set(c.partida, c); });
+
+  const pares = lineasFiltradas
+    .filter(c => c.partida && otraPorPartida.has(c.partida))
+    .map(c => ({
+      entrada: seccionKey === 'tunel' ? c : otraPorPartida.get(c.partida),
+      carga: seccionKey === 'carga' ? c : otraPorPartida.get(c.partida),
+    }));
+
+  const tituloHTML = `<div class="control-categoria-box-titulo">Comparar Check Túnel (entrada) vs Check Carga (salida)${pares.length ? ` — ${pares.length} partida${pares.length === 1 ? '' : 's'}` : ''}</div>`;
+
+  if (!pares.length) {
+    return `<div class="control-categoria-box" style="margin-top:1.25rem">${tituloHTML}
+      <div style="font-size:12px;color:var(--muted);font-style:italic;padding:.5rem 0">Ninguna partida del filtro actual tiene registro en los dos checks todavía.</div>
+    </div>`;
+  }
+
+  const valorCat = (cat, c) => (cat.opciones.find(o => c[cat.key] && c[cat.key][o.key]) || {}).label || '—';
+  const filaCategoria = (cat, entrada, carga) => {
+    const vEntrada = valorCat(cat, entrada), vCarga = valorCat(cat, carga);
+    const cambio = vEntrada !== '—' && vCarga !== '—' && vEntrada !== vCarga;
+    return `<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;white-space:nowrap;${cambio ? 'font-weight:800;color:#c47f00' : ''}">${escapar(vEntrada)} → ${escapar(vCarga)}</td>`;
+  };
+
+  return `<div class="control-categoria-box" style="margin-top:1.25rem">${tituloHTML}
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">
+      <thead><tr style="background:#f0f4f8">
+        <th style="padding:5px 8px;border:1px solid var(--border);text-align:left">Partida</th>
+        ${CONTROL_CHECK_CATEGORIAS.map(cat => `<th style="padding:5px 8px;border:1px solid var(--border);text-align:left">${cat.label}</th>`).join('')}
+      </tr></thead>
+      <tbody>${pares.map(({ entrada, carga }) => `<tr>
+        <td style="padding:5px 8px;border:1px solid var(--border);font-weight:800;color:var(--blue);white-space:nowrap">${escapar(entrada.partida)}</td>
+        ${CONTROL_CHECK_CATEGORIAS.map(cat => filaCategoria(cat, entrada, carga)).join('')}
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <div style="font-size:10px;color:var(--muted);margin-top:6px">Entrada → Carga. En <span style="color:#c47f00;font-weight:800">naranja</span>, lo que cambió entre ambos checks.</div>
+  </div>`;
+}
+
+function renderControlAnalisis(seccion) {
+  const seccionKey = seccion.key;
+  const f = controlAnalisisFiltro[seccionKey];
+  const lineas = lineasFiltradasAnalisis(seccionKey);
+
+  const invOptions = CONTROL_INV_SALA1.concat(CONTROL_INV_SALA2)
+    .map(id => `<option value="${id}" ${f.inv === id ? 'selected' : ''}>INV ${id}</option>`).join('');
+  const catOptions = CONTROL_CHECK_CATEGORIAS
+    .map(cat => `<option value="${cat.key}" ${f.catKey === cat.key ? 'selected' : ''}>${cat.label}</option>`).join('');
+  const catValOptions = f.catKey
+    ? (CONTROL_CHECK_CATEGORIAS.find(c => c.key === f.catKey)?.opciones || [])
+      .map(o => `<option value="${o.key}" ${f.catVal === o.key ? 'selected' : ''}>${o.label}</option>`).join('')
+    : '';
+
+  const campo = (label, inputHTML) => `<div><label style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">${label}</label>${inputHTML}</div>`;
+  const estiloInput = `display:block;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;margin-top:3px`;
+
+  const filtrosHTML = `
+    <div class="control-filtros-row" style="align-items:flex-end;background:#f2f4f0;border-radius:10px;padding:10px 12px;flex-wrap:wrap">
+      ${campo('Buscar', `<input type="text" value="${escapar(f.texto)}" placeholder="Partida, cliente, variedad..." oninput="cambiarControlAnalisisFiltro('${seccionKey}','texto',this.value)" style="${estiloInput};min-width:180px">`)}
+      ${campo('Invernadero', `<select onchange="cambiarControlAnalisisFiltro('${seccionKey}','inv',this.value)" style="${estiloInput}"><option value="">Todos</option>${invOptions}</select>`)}
+      ${campo('Desde', `<input type="date" value="${f.desde}" onchange="cambiarControlAnalisisFiltro('${seccionKey}','desde',this.value)" style="${estiloInput}">`)}
+      ${campo('Hasta', `<input type="date" value="${f.hasta}" onchange="cambiarControlAnalisisFiltro('${seccionKey}','hasta',this.value)" style="${estiloInput}">`)}
+      ${campo('Categoría', `<select onchange="cambiarControlAnalisisFiltro('${seccionKey}','catKey',this.value)" style="${estiloInput}"><option value="">Cualquiera</option>${catOptions}</select>`)}
+      ${f.catKey ? campo('Valor', `<select onchange="cambiarControlAnalisisFiltro('${seccionKey}','catVal',this.value)" style="${estiloInput}"><option value="">Cualquiera</option>${catValOptions}</select>`) : ''}
+      <button onclick="exportarControlAnalisisCSV('${seccionKey}')" style="padding:8px 16px;font-size:12px;font-weight:800;background:#0f5c4a;color:#fff;border:none;border-radius:7px;cursor:pointer;height:34px">⬇ Exportar CSV (${lineas.length})</button>
+    </div>`;
+
+  if (!lineas.length) {
+    return filtrosHTML + `<div class="info" style="text-align:center;padding:2.5rem;font-style:italic">${controlChecksCache.filter(c => c.tipo === seccionKey).length === 0 ? 'Todavía no hay líneas archivadas de esta sección.' : 'Ninguna línea coincide con el filtro.'}</div>`;
+  }
+
+  const totalBandejas = lineas.reduce((s, c) => s + (parseFloat(c.numBandejas) || 0), 0);
+  const conSanidadOk = lineas.filter(c => c.sanidad && c.sanidad.ok).length;
+  const conEnferma = lineas.filter(c => c.sanidad && c.sanidad.enferma).length;
+  const resumenHTML = `<div class="control-stats-grid">
+    ${statCardAnalisis('Líneas', lineas.length, 'linear-gradient(135deg,#1558a0,#2a72c4)')}
+    ${statCardAnalisis('Nº bandejas', Math.round(totalBandejas), 'linear-gradient(135deg,#7b5cf0,#5c8df0)')}
+    ${statCardAnalisis('Sanidad OK', `${conSanidadOk} (${Math.round(conSanidadOk / lineas.length * 100)}%)`, 'linear-gradient(135deg,#1a5c2e,#3fa864)')}
+    ${statCardAnalisis('Enfermas', conEnferma, 'linear-gradient(135deg,#c62828,#e57373)')}
+  </div>`;
+
+  // Evolución por quincena — mismo contador de "día" que el resto de la
+  // app (ver RIEGO_ANCHOR_DATE/quincenaDiasDe), para que "Quincena N" aquí
+  // sea la misma quincena que en Riego/Plaguicidas/Específicos.
+  const porQuincena = {};
+  lineas.forEach(c => {
+    const q = Math.floor((Number(c.dia) - 15) / 14);
+    (porQuincena[q] = porQuincena[q] || []).push(c);
+  });
+  const quincenas = Object.keys(porQuincena).map(Number).sort((a, b) => a - b);
+  const evolucionHTML = quincenas.length > 1 ? `
+    <div class="control-categoria-box" style="margin-top:1.25rem">
+      <div class="control-categoria-box-titulo">Evolución por quincena — % sanidad OK</div>
+      <div style="display:flex;gap:6px;align-items:flex-end;height:80px">
+        ${quincenas.map(q => {
+          const grupo = porQuincena[q];
+          const pct = Math.round(grupo.filter(c => c.sanidad && c.sanidad.ok).length / grupo.length * 100);
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0">
+            <div style="width:100%;height:44px;display:flex;align-items:flex-end">
+              <div title="Quincena ${q + 1}: ${pct}% (${grupo.length} líneas)" style="width:100%;height:${Math.max(6, pct)}%;background:${seccion.color};border-radius:4px 4px 0 0"></div>
+            </div>
+            <div style="font-size:9px;color:var(--muted)">Q${q + 1}</div>
+            <div style="font-size:10px;font-weight:800">${pct}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  // Comparativa por invernadero.
+  const porInv = {};
+  lineas.forEach(c => {
+    const invId = invIdDeLinea(c, seccionKey);
+    if (invId) (porInv[invId] = porInv[invId] || []).push(c);
+  });
+  const invsOrdenados = Object.keys(porInv).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const maxLineasInv = Math.max(1, ...invsOrdenados.map(id => porInv[id].length));
+  const comparativaInvHTML = invsOrdenados.length ? `
+    <div class="control-categoria-box" style="margin-top:1.25rem">
+      <div class="control-categoria-box-titulo">Comparativa por invernadero</div>
+      ${invsOrdenados.map(id => {
+        const grupo = porInv[id];
+        const pctOk = Math.round(grupo.filter(c => c.sanidad && c.sanidad.ok).length / grupo.length * 100);
+        return `<div class="control-barra">
+          <div class="control-barra-label">INV ${id}</div>
+          <div class="control-barra-track" style="background:#eef0ec"><div class="control-barra-fill" style="width:${Math.round(grupo.length / maxLineasInv * 100)}%;background:linear-gradient(135deg,#1558a0,#2a72c4)"></div></div>
+          <div class="control-barra-n">${grupo.length}</div>
+          <div style="width:56px;text-align:right;font-size:11px;font-weight:800;color:${pctOk >= 80 ? '#2e7d32' : pctOk >= 50 ? '#c47f00' : '#c62828'}">${pctOk}% OK</div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  return filtrosHTML + resumenHTML + evolucionHTML + comparativaInvHTML + renderComparativaEntradaCarga(seccionKey, lineas);
 }
 
 window.mostrarListadoControl = function (idx) {
