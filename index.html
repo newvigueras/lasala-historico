@@ -731,6 +731,14 @@ function textoBusquedaDeLinea(c, seccionKey) {
 window.cargarControlModulo = async function () {
   document.getElementById('control-resumen').innerHTML = '<div class="info">Cargando...</div>';
   try {
+    // La Sala migró Check Túnel/Carga de un array único (lasala-control-
+    // checks-v1) a una colección de documentos sueltos (lasala-control-
+    // items-v1, uno por línea, YA NO doble-codificada en JSON) — detectado
+    // el 2026-09-15 al ver que el contador de "líneas registradas" de Check
+    // Túnel en La Sala (2123) no coincidía con el nuestro (1645, congelado
+    // desde la migración porque seguíamos leyendo solo la clave vieja). Se
+    // leen las dos: la vieja todavía guarda 10 líneas reales de Carga de
+    // finales de agosto que no llegaron a pasar a la colección nueva.
     let liveArr = [];
     try {
       const res = await fetch(`${FIREBASE_DB_URL_FRONTEND}/lasala-control-checks-v1.json`);
@@ -738,6 +746,17 @@ window.cargarControlModulo = async function () {
       if (raw !== 'null') {
         const inner = JSON.parse(raw);
         liveArr = typeof inner === 'string' ? JSON.parse(inner) : inner;
+      }
+    } catch (e) { /* si Firebase no responde, seguimos solo con lo archivado */ }
+
+    let liveItems = [];
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL_FRONTEND}/lasala-control-items-v1.json`);
+      const raw = await res.text();
+      if (raw !== 'null') {
+        const inner = JSON.parse(raw);
+        const obj = typeof inner === 'string' ? JSON.parse(inner) : inner;
+        liveItems = Object.values(obj || {});
       }
     } catch (e) { /* si Firebase no responde, seguimos solo con lo archivado */ }
 
@@ -751,7 +770,7 @@ window.cargarControlModulo = async function () {
       }
     } catch (e) { /* si Firebase no responde, seguimos solo con lo archivado */ }
 
-    const { data: archivado } = await supabase.from('control_checks').select('datos_raw').limit(3000);
+    const { data: archivado } = await supabase.from('control_checks').select('datos_raw').limit(20000);
     const { data: archivadoTuta } = await supabase.from('grid_historico').select('dia, invernadero, dato_raw').eq('dominio', 'conteo_tuta');
 
     try {
@@ -761,9 +780,14 @@ window.cargarControlModulo = async function () {
       controlInvernaderoCache = []; // todavía no hay ningún snapshot guardado
     }
 
+    // Orden deliberado: lo archivado primero, luego la clave vieja (legado,
+    // por si guarda alguna línea que no llegó a la colección nueva), y la
+    // colección nueva la última — así, si una línea existe en varios
+    // sitios con datos distintos, gana siempre la fuente más reciente/viva.
     const porId = new Map();
     (archivado || []).forEach(r => { if (r.datos_raw && r.datos_raw.id) porId.set(r.datos_raw.id, r.datos_raw); });
     (liveArr || []).forEach(c => { if (c && c.id) porId.set(c.id, c); });
+    (liveItems || []).forEach(c => { if (c && c.id) porId.set(c.id, c); });
     controlChecksCache = Array.from(porId.values());
 
     // Igual que con los checks: lo archivado (>15 días) viene de
@@ -1875,7 +1899,7 @@ window.cambiarSemanaMapa = function (delta) {
 async function cargarMapaPartidas() {
   const info = document.getElementById('mapa-info');
   info.textContent = 'Cargando...';
-  const { data, error } = await supabase.from('control_checks').select('*').limit(3000);
+  const { data, error } = await supabase.from('control_checks').select('*').limit(20000);
   if (error) { info.textContent = 'Error: ' + error.message; return; }
   mapaChecksCache = data;
 
